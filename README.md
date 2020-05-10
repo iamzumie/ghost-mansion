@@ -1,4 +1,5 @@
-# G H O S T   M A N S I O N #
+GHOST MANSION
+-------------
 
 A text based adventure game written in C
 Ghost mansion is small text adventure game written in C for fun. 
