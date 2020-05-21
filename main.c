@@ -39,6 +39,7 @@ void loc_upstairs();
 int answer, location;
 int current_loc = 4;
 int bullets = 0;
+int gun = 0;
 char* read;
 char name[40];
 char buffer[1024];
@@ -189,7 +190,7 @@ int map()
             printf("You are already standing in the %s.\n", locs[answer].description);
         else
         {
-            switch (answer) // GO TO THE LOCATIONS
+        switch (answer) // GO TO THE LOCATIONS
             {
                 case 1: 
                     printf("You entered the kitchen.\n");
@@ -204,29 +205,10 @@ int map()
                     loc_toilet(); break;
                 case 5: loc_upstairs(); break;
                 default:
-                    printf("Come again?\n\n"); break;
+                    printf("Come again?\n");
             }
         }
-    } while (answer == 5);
-        printf("UPSTAIRS PART!\n");
-}
-
-void showmap()
-{
-    puts(
-        "\n"
-        "   ______________________________________\n"
-        "  /            |        | UP |           \\ \n"
-        " |             | TOILET |----|            |\n"
-        " |   KITCHEN   |___ ____|----|            |\n"
-        " |                      |----|            |\n"
-        " |______  _____|        |                 |\n"
-        " |             |        |                 |\n"
-        " |    DINING   |              LIVING      |\n"
-        " |     ROOM             |      ROOM       |\n"
-        " |             |  HALL  |                 |\n"
-        " |_____________|________|_________________|\n"
-    );
+    } while (answer != 5 && gun != 2);
 }
 
 void showlocations() 
@@ -239,6 +221,7 @@ void showlocations()
 
 void loc_kitchen()
 {
+    current_loc = 1; // ADD LOCATION
     printf("There are several cupboards and drawers ajar, there's also a weird\n");
     printf("smell coming from the fridge.\n\n");
 
@@ -249,8 +232,19 @@ void loc_kitchen()
 
         if (strcasecmp(read, "search") == 0) 
         {
-            printf("In one of the drawers you found some salt bullets. These might come in handy!\n\n");
-            bullets = 1;
+            if (gun == 1) {
+                printf("You filled your shotgun with bullets.\n\n");
+                gun = 2;
+            }
+            else if (gun == 2){
+                printf("You already looked for some stuff.\n\n");
+            }
+            else 
+            {
+                printf("In one of the drawers you found some salt bullets. These might come in handy!\n\n");
+                bullets = 1;
+            }
+            
         } 
         else if (strcasecmp(read, "open") == 0) 
         {
@@ -262,56 +256,106 @@ void loc_kitchen()
             map();
             break;
         } 
+        else
+        {
+            printf("I don't know the word %s.\n\n", read);
+        }
+        
     }
-    current_loc = 1; // ADD LOCATION
 }
 
 void loc_hall()
 {
-    printf("HALLWAY\n\n");
-    printf("There are several cupboards and drawers ajar, there's also a weird\n\n");
-
+    current_loc = 2; // ADD LOCATION
+    printf("In the middle of the room stands a big closet.\n\n");
     while (1)
     {
         command();
         read = fWord();
 
-        if (strcasecmp(read, "search") == 0) 
+        if (strcasecmp(read, "open") == 0) 
         {
-            printf("In one of the drawers you found some salt bullets. These might come in handy!\n\n");
-            bullets = 1;
-        } 
-        else if (strcasecmp(read, "open") == 0) 
-        {
-            function("open", "fridge");
-            printf("Oh wish you didnt opened that. Whatever's in it, it's definitely out-of-date.\n\n");
+            function("open", "closet");
+            printf("Just some old jackets..\n\n");
         }
         else if (strcasecmp(read, "go") == 0) 
         {
             map();
             break;
         } 
+        else
+        {
+            printf("I don't know the word %s.\n\n", read);
+        }
     }
-    current_loc = 2; // ADD LOCATION
 }
 
 void loc_living()
 {
-    printf("LIVING ROOM\n\n");
     current_loc = 3; // ADD LOCATION
+    printf("A lot of dusty furniture, above the fireplace hangs a shotgun.\n\n");
+        while (1)
+    {
+        command();
+        read = fWord();
+
+        if (strcasecmp(read, "take") == 0) 
+        {
+            function("take", "gun");
+            if (bullets) {
+                printf("You got yourself a gun, you filled it up with the salt bullets you found in the kitchen.\n\n");
+                gun = 2;
+            }
+            else {
+                printf("Hmm empty, we need some find some bullets.\n\n");
+                gun = 1;
+            }
+        }
+        else if (strcasecmp(read, "go") == 0) 
+        {
+            map();
+            break;
+        } 
+        else
+        {
+            printf("I don't know the word %s.\n\n", read);
+        }
+    }
 }
 
 void loc_toilet()
 {
-    printf("You sure have a small bladder, couldn't you go before we started playing?\n");
-    command();
     current_loc = 4; 
+    printf("You sure have a small bladder, couldn't you go before we started playing?\n\n");
+    while (1)
+    {
+        command();
+        read = fWord();
+
+        if (strcasecmp(read, "go") == 0) 
+        {
+            map();
+            break;
+        } 
+        else
+        {
+            printf("I don't know the word %s.\n\n", read);
+        }
+    }
 }
 
 void loc_upstairs()
 {
-    printf("UPSTAIRS\n\n");
-    printf("You aren't allowed up here yet!\n\n");
+    current_loc = 5; 
+    if (gun != 2) {
+        printf("You aren't allowed up here yet!\n");
+    }
+    else
+    {
+        printf("CONTINUE.\n\n");
+        command();
+        read = fWord();
+    }
 }
 
 // TITLE SCREEN & INTRODUCTION
