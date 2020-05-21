@@ -311,7 +311,7 @@ void loc_toilet()
 void loc_upstairs()
 {
     printf("UPSTAIRS\n\n");
-    printf("You aren't allowed up here!\n\n");
+    printf("You aren't allowed up here yet!\n\n");
 }
 
 // TITLE SCREEN & INTRODUCTION
