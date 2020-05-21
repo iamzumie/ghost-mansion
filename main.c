@@ -13,6 +13,7 @@ void showmap();
 void showlocations();
 int choice();
 int map();
+int location2();
 char* fWord();
 
 // LOCATIONS
@@ -23,8 +24,7 @@ struct location {
 locs[] = {
     {""},
     {"kitchen", "KITCHEN"},
-    {"dining room", "DINING"},
-    {"hall", "HALL"},
+    {"hallway", "HALL"},
     {"living room", "LIVING"},
     {"toilet", "TOILET"},
     {"upstairs", "UPSTAIRS"},
@@ -32,13 +32,13 @@ locs[] = {
 void loc_kitchen();
 void loc_living();
 void loc_hall();
-void loc_dining();
 void loc_toilet();
 void loc_upstairs();
 
 // INIT
 int answer, location;
 int current_loc = 4;
+int bullets = 0;
 char* read;
 char name[40];
 char buffer[1024];
@@ -49,78 +49,44 @@ int main()
 {
     // RANDOM NUMBER GENERATOR //
     srand(time(NULL));
-    int random = rand() % 4 + 1; // + 1 because it's 0 otherwise, % 5 so we won't 'spawn' upstairs.
+    int random = rand() % 1 + 1; // + 1 because it's 0 otherwise, % 5 so we won't 'spawn' upstairs.
     current_loc = random;
     //
 
-
     startUp(); // INTRO
 
-    // FIRST QUESTION
-    printf("[1] look around\t [2] go north\t [3] go south\n\n");
-    do {
+
+    // 1ST QUESTION
+    while (1) 
+    {
         command();
-        choice(&answer);
-        switch (answer)
+        read = fWord();
+
+        if (strcasecmp(read, "open") == 0) 
         {
-            case 1: printf("It's pouring, maybe it's better if we go somewhere to hide.\n\n"); break;
-            case 2: printf("You go towards the mansion.\nThere's a sign on the door that says: \"Begone humans! Leave the dead in peace!\"\n\n"); break;
-            case 3: printf("It's too dark going south, it's freezing outside.\n\n");
-                    break;
-            default: printf("Come again? Please choose a valid number and hit enter.\n\n"); break;
-        }
-    } while (answer != 2);
-
-
-    // SECOND QUESTION
-    printf("[1] Go inside\t [2] Knock on the door\t [3] Kick a flower pot\n\n");
-
-    do {
-        command();
-        choice(&answer);
-        switch (answer)
+            function("open", "door");
+            break;
+        } 
+        else if (strcasecmp(read, "knock") == 0) 
+            printf("Nobody's home, it seems abandonded too.\n\n");
+        else if (strcasecmp(read, "read") == 0) 
         {
-            case 1: printf("It's locked. You need to find a key.\n\n"); break;
-            case 2: printf("Nobody's home, it seems abandonded too.\n\n"); break;
-            case 3: printf("You found the key under the flower pot!");
-                    printf("\nYou open the door, it's very dark inside..\n\n");
-                    break;
-            default: printf("Come again?\n\n"); break;
+            function("read", "sign");
+            printf("\"Begone, leave the dead in peace!\"\n\n");
         }
-    } while (answer != 3);
+        else 
+            printf("I don't know the word %s, try again.\n\n", read);
+    } 
 
+    // 2ND QUESTION
+    printf("You entered the mansion, it's too dark inside to see anything.\n");
+    printf("You try to put on some light but the power seems to be out.\n");    
+    printf("\n[i] Use your 'LIGHTER' to lit some candles.\n\n");
 
-    // THIRD QUESTION
-    printf("We could use some light..\n");
-    printf("\n[!] To use a lighter, type 'USE' and hit enter. Then type 'LIGHTER'.\n\n");
-
-    action("USE"); // LOOKS AT USE FIRST
+    action("USE");
     function("USE", "lighter");
-
-
-    // FOURTH QUESTION
-    printf("The room lightened up a little, all windows are boarded.\n");
-    printf("What do you want to do next?\n\n");
-    printf("[1] use toilet     [2] turn on some lights     [3] search for candles\n\n");
-
-    do {
-        command();
-        choice(&answer);
-        switch (answer)
-        {
-            case 1: printf("Aaah that felt good!\n\n"); break;
-            case 2: printf("Nothing happened.. I guess the power isn't working.\n\n"); break;
-            case 3: printf("You found a candle, just in time. Your lighter was almost empty.\n"); break;
-            default: printf("Come again?\n\n"); break;
-        }
-    } while (answer != 3);
-    printf("While looking for candles you also found a map which seems to be like the floorplan.\n");
-
-    // MAP
-    printf("\n[!] \"Use\" map where you want to go to:\n\n");
-    action("USE"); // LOOKS AT USE FIRST
-    function("USE", "map");
-    map();
+    printf("The %s lightened up, seems like nobody has been here in a while..\n", locs[current_loc].description);
+    location2();
 
     return 0;
 }
@@ -166,7 +132,7 @@ void function(char* cmd, char* input)
 {
     while (1)
     {
-        printf("%s:  ", cmd);
+        printf("%s: ", cmd);
         read = fWord();
         if (read)
         {
@@ -194,45 +160,61 @@ char* fWord()
 }
 
 
+int location2() 
+{
+    // location
+    switch (current_loc) // GO TO THE LOCATIONS
+    {
+        case 1: loc_kitchen();break;
+        case 2: loc_hall(); break;
+        case 3: loc_living(); break;
+        case 4: loc_toilet(); break;
+        case 5: loc_upstairs(); break;
+        default: break;
+        }
+} 
+
+
 int map() 
 {
-    showmap();
-    printf("\nChoose where you want to go.\n");
-    printf("\nYou are standing in the %s.\n\n", locs[current_loc].description);
     showlocations();
-    printf("\n\n");
-    
     // CHOOSE A LOCATION
     do
     {
-        command();
+        printf("\nGo to: ");
         choice(&answer);
         
         // CHECKS IF WE AREN'T IN THIS LOCATION ALREADY FIRST
         if (current_loc == answer && answer != 0)
-            printf("You are already standing in the %s.\n\n", locs[answer].description);
+            printf("You are already standing in the %s.\n", locs[answer].description);
         else
         {
             switch (answer) // GO TO THE LOCATIONS
             {
-                case 1: loc_kitchen();break;
-                case 2: loc_dining(); break;
-                case 3: loc_hall(); break;
-                case 4: loc_living(); break;
-                case 5: loc_toilet(); break;
-                case 6: loc_upstairs(); break;
+                case 1: 
+                    printf("You entered the kitchen.\n");
+                    loc_kitchen();break;
+                case 2: 
+                    printf("You entered the hall.\n");
+                    loc_hall(); break;
+                case 3: 
+                    printf("You entered the living room.\n");
+                    loc_living(); break;
+                case 4: 
+                    loc_toilet(); break;
+                case 5: loc_upstairs(); break;
                 default:
                     printf("Come again?\n\n"); break;
             }
         }
-    } while (answer != 6);
+    } while (answer == 5);
         printf("UPSTAIRS PART!\n");
 }
 
 void showmap()
 {
     puts(
-        "\n\n"
+        "\n"
         "   ______________________________________\n"
         "  /            |        | UP |           \\ \n"
         " |             | TOILET |----|            |\n"
@@ -249,45 +231,81 @@ void showmap()
 
 void showlocations() 
 {
-    for (int i = 1; i < 7; i++)
+    for (int i = 1; i < 6; i++)
     {
-        printf("[%i] %s    ", i, locs[i].desc_upper);
+        printf("%i. %s\n", i,  locs[i].desc_upper);
     }   
 }
 
 void loc_kitchen()
 {
-    
-    printf("KITCHEN\n\n");
-    current_loc = 1; // ADD LOCATION
-}
+    printf("There are several cupboards and drawers ajar, there's also a weird\n");
+    printf("smell coming from the fridge.\n\n");
 
-void loc_dining()
-{
-    
-    printf("DINING ROOM\n\n");
-    current_loc = 2; // ADD LOCATION
+    while (1)
+    {
+        command();
+        read = fWord();
+
+        if (strcasecmp(read, "search") == 0) 
+        {
+            printf("In one of the drawers you found some salt bullets. These might come in handy!\n\n");
+            bullets = 1;
+        } 
+        else if (strcasecmp(read, "open") == 0) 
+        {
+            function("open", "fridge");
+            printf("Oh wish you didnt opened that. Whatever's in it, it's definitely out-of-date.\n\n");
+        }
+        else if (strcasecmp(read, "go") == 0) 
+        {
+            map();
+            break;
+        } 
+    }
+    current_loc = 1; // ADD LOCATION
 }
 
 void loc_hall()
 {
-    
-    printf("HALL\n\n");
-    current_loc = 3; // ADD LOCATION
+    printf("HALLWAY\n\n");
+    printf("There are several cupboards and drawers ajar, there's also a weird\n\n");
+
+    while (1)
+    {
+        command();
+        read = fWord();
+
+        if (strcasecmp(read, "search") == 0) 
+        {
+            printf("In one of the drawers you found some salt bullets. These might come in handy!\n\n");
+            bullets = 1;
+        } 
+        else if (strcasecmp(read, "open") == 0) 
+        {
+            function("open", "fridge");
+            printf("Oh wish you didnt opened that. Whatever's in it, it's definitely out-of-date.\n\n");
+        }
+        else if (strcasecmp(read, "go") == 0) 
+        {
+            map();
+            break;
+        } 
+    }
+    current_loc = 2; // ADD LOCATION
 }
 
 void loc_living()
 {
-    
-    printf("LIVING\n\n");
-    current_loc = 4; // ADD LOCATION
+    printf("LIVING ROOM\n\n");
+    current_loc = 3; // ADD LOCATION
 }
 
 void loc_toilet()
 {
-    printf("You sure have a small bladder!\n");
-    printf("Where do you want to go now?\n\n");
-    current_loc = 5; 
+    printf("You sure have a small bladder, couldn't you go before we started playing?\n");
+    command();
+    current_loc = 4; 
 }
 
 void loc_upstairs()
@@ -300,13 +318,16 @@ void loc_upstairs()
 void startUp()
 {
     // TITLE SCREEN
-    printf("\n");
-    printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+    printf("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
     printf("\t\t\t G H O S T   M A N O R\n");
     printf("\n");
-    printf("\t\tA  T E X T - A D V E N T U R E  G A M E    \n");
-    printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n\n");
+    printf("\t\tA  T E X T - A D V E N T U R E  G A M E");
+    printf("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n\n");    
 
     // INTRODUCTION
-    printf("\nIt's a cold day, mid december and you find yourself wandering outside. In the distance you see a mansion.\n\n");
+    printf("In the early 90s a girl paid a visit to a mansion, never to be seen again.\n");
+    printf("Rumors say she is still roaming around the mansion, waiting..\n");
+    printf("You can address me with some simple words: \"use, open, search & go\".\n");
+    printf("Explore this godforsaken place and see if the stories are true.\n\n\n"); 
+    printf("You stand in front of the mansion, there is a sign on the door.\n\n");
 }
