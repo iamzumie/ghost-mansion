@@ -4,10 +4,9 @@ Ghost mansion is small text adventure game written in C for fun.
 The adventure takes place in a mansion.
 
 
-## Update v0.3
+## Update v0.4
 
-* Changed user input
-* Added locations with the use of structs
+* Added more story
 
 ## License
 
