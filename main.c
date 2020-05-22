@@ -11,6 +11,7 @@ void action();
 void function();
 void showmap();
 void showlocations();
+void tryAgain();
 int choice();
 int map();
 int location2();
@@ -80,13 +81,15 @@ int main()
     } 
 
     // 2ND QUESTION
-    printf("You entered the mansion, it's too dark inside to see anything.\n");
+    printf("You enter the mansion, it's too dark inside to see anything.\n");
     printf("You try to put on some light but the power seems to be out.\n");    
     printf("\n[i] Use your 'LIGHTER' to lit some candles.\n\n");
 
     action("USE");
     function("USE", "lighter");
     printf("The %s lightened up, seems like nobody has been here in a while..\n", locs[current_loc].description);
+    //printf("The %s lightened up, seems like nobody has been here in a while..\n", locs[3].description);
+    //printf("You now have access to the kitchen, toilet, living room & upstairs.\n\n");
     location2();
 
     return 0;
@@ -203,17 +206,18 @@ int map()
                     loc_living(); break;
                 case 4: 
                     loc_toilet(); break;
-                case 5: loc_upstairs(); break;
+                case 5: 
+                    loc_upstairs(); break;
                 default:
                     printf("Come again?\n");
             }
         }
-    } while (answer != 5 && gun != 2);
+    } while (gun != 2 || answer == 5 || current_loc == answer);
 }
 
 void showlocations() 
 {
-    for (int i = 1; i < 6; i++)
+    for (int i = 1; i < 5; i++)
     {
         printf("%i. %s\n", i,  locs[i].desc_upper);
     }   
@@ -235,6 +239,7 @@ void loc_kitchen()
             if (gun == 1) {
                 printf("You filled your shotgun with bullets.\n\n");
                 gun = 2;
+                loc_upstairs();
             }
             else if (gun == 2){
                 printf("You already looked for some stuff.\n\n");
@@ -293,8 +298,11 @@ void loc_hall()
 void loc_living()
 {
     current_loc = 3; // ADD LOCATION
-    printf("A lot of dusty furniture, above the fireplace hangs a shotgun.\n\n");
-        while (1)
+    printf("The furniture is covered with white cloth, but the colour has become\n");
+    printf("yellow out of age. The carpet has blood and dirt stains on it.\n");
+    printf("Above the fireplace you see a double-barreled shotgun.\n\n");
+    
+    while (1)
     {
         command();
         read = fWord();
@@ -303,8 +311,9 @@ void loc_living()
         {
             function("take", "gun");
             if (bullets) {
-                printf("You got yourself a gun, you filled it up with the salt bullets you found in the kitchen.\n\n");
+                printf("You got yourself a gun, you filled it up with the salt bullets you found in the kitchen.\n");
                 gun = 2;
+                loc_upstairs();
             }
             else {
                 printf("Hmm empty, we need some find some bullets.\n\n");
@@ -348,11 +357,12 @@ void loc_upstairs()
 {
     current_loc = 5; 
     if (gun != 2) {
-        printf("You aren't allowed up here yet!\n");
+        tryAgain();
     }
     else
     {
-        printf("CONTINUE.\n\n");
+        printf("When you put the bullets in the gun, you hear a door being slammed shut upstairs.\n");
+        printf("You run upstairs.\n\n");
         command();
         read = fWord();
     }
@@ -371,7 +381,35 @@ void startUp()
     // INTRODUCTION
     printf("In the early 90s a girl paid a visit to a mansion, never to be seen again.\n");
     printf("Rumors say she is still roaming around the mansion, waiting..\n");
-    printf("You can address me with some simple words: \"use, open, search & go\".\n");
+    printf("You can direct me with some simple words: \"use, open, search & go\".\n");
     printf("Explore this godforsaken place and see if the stories are true.\n\n\n"); 
     printf("You stand in front of the mansion, there is a sign on the door.\n\n");
+}
+
+void tryAgain() 
+{
+    printf("You died.\n");
+    printf("Do you want to try again?\n\n");
+
+    while (1)
+    {
+        command();
+    read = fWord();
+    if (strcasecmp(read, "yes") == 0)
+    {
+        startUp();
+        break;
+    }
+    else if (strcasecmp(read, "no") == 0)
+    {
+        exit;
+    }
+    else
+    {
+        printf("I don't know the word %s.\n\n", read);
+        command();
+        read = fWord();
+    }
+    }
+    
 }
