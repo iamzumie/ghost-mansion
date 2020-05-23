@@ -6,6 +6,7 @@ The adventure takes place in a mansion.
 
 ## Update v0.4
 
+* Added the use of multiple words
 * Added more story
 
 ## License
