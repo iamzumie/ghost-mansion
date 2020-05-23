@@ -12,9 +12,14 @@ void function();
 void showlocations();
 void endGame();
 int choice();
-int map();
+void map();
 int location2();
+int readLine();
+int execute();
 char* fWord();
+void executeOpenDoor();
+void executeReadSign();
+void executeGo();
 
 // LOCATIONS
 struct location {
@@ -41,6 +46,7 @@ int answer, location, current_loc;
 int bullets, key, gun = 0;
 char* read;
 char name[40];
+static char input[100];
 char buffer[1024];
 
 // MAIN GAME
@@ -51,38 +57,11 @@ int main()
     int random = rand() % 1 + 1; // + 1 because it's 0 otherwise, % 5 so we won't 'spawn' upstairs.
     current_loc = random;
     //
+    
     startUp(); // INTRO
 
-    // 1ST QUESTION
-    while (1) 
-    {
-        command();
-        read = fWord();
-
-        if (strcasecmp(read, "open") == 0) 
-        {
-            function("open", "door");
-            break;
-        } 
-        else if (strcasecmp(read, "knock") == 0) 
-            printf("Nobody's home, it seems abandonded too.\n\n");
-        else if (strcasecmp(read, "read") == 0) 
-        {
-            function("read", "sign");
-            printf("\"Begone, leave the dead in peace!\"\n\n");
-        }
-        else 
-            printf("I don't know the word %s, try again.\n\n", read);
-    } 
-
-    // 2ND QUESTION
-    printf("You enter the mansion, it's too dark inside to see anything.\n");
-    printf("You try to put on some light but the power seems to be out.\n");    
-    printf("\n[i] Use your 'LIGHTER' to lit some candles.\n\n");
-
-    action("USE");
-    function("USE", "lighter");
-    printf("The %s lightened up, seems like nobody has been here in a while..\n", locs[current_loc].description);
+    // GAME LOOP
+    while (readLine() && execute()); 
     location2();
 
     return 0;
@@ -90,10 +69,121 @@ int main()
 
 
 // FUNCTIONS
+// TITLE SCREEN & INTRODUCTION
+void startUp()
+{
+    // TITLE SCREEN
+    printf("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+    printf("\t\t\t G H O S T   M A N O R\n");
+    printf("\n");
+    printf("\t\tA  T E X T - A D V E N T U R E  G A M E");
+    printf("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n\n");    
 
-// -->
-void command() {
+    // INTRODUCTION
+    printf("In the early 90s a girl paid a visit to a mansion, never to be seen again.\n");
+    printf("Rumors say she is still roaming around the mansion, waiting..\n");
+    printf("Find out if the stories are true are if it's just a hoax.\n"); 
+    printf("You can direct me with the use of some basic words.\n\n\n");
+    printf("You stand in front of the mansion, there is a sign on the door.\n\n");
+}
+
+// COMMAND & READLINE
+int readLine ()
+{
     printf(">  ");
+    return fgets(input, sizeof(input), stdin) != NULL;
+}
+
+int execute()
+{
+    char *verb = strtok(input, " \n");
+    char *noun = strtok(NULL, " \n");
+
+    if (verb != NULL)
+    {        
+        if (strcmp(verb, "open") == 0) 
+        {
+            executeOpenDoor(noun);
+        }
+        else if (strcmp(verb, "read") == 0) 
+        {
+            executeReadSign(noun);
+        }
+        else 
+            printf("I don't know the word %s, try again.\n\n", verb);
+    }
+    return 1;
+}
+
+void map() 
+{
+    while (1)
+    {
+        readLine();
+        
+        char *verb = strtok(input, " \n");
+        char *noun = strtok(NULL, " \n");
+
+        if (strcmp(verb, "go") == 0)
+        {
+            executeGo(noun);
+        }
+        else
+        {
+            printf("I don't understand where you want to go.\n\n");
+        }
+    }
+}
+
+void executeOpenDoor(const char *noun)
+{
+    if (noun == NULL)
+    {
+        printf("What do you want to open?\n\n");
+    }
+    else if (strcmp(noun, "door") == 0)
+    {        
+        printf("You enter the mansion, seems like nobody's been here in years..\n");
+        printf("You now have access to the kitchen, toilet, living room & upstairs.\n\n");
+        map();
+    }
+    else
+    {
+        printf("I don't know what you want to open.\n\n");
+    }
+}
+
+void executeReadSign(const char *noun)
+{
+    if (noun == NULL)
+    {
+        printf("What do you want to read?\n\n");
+    }
+    else if (strcmp(noun, "sign") == 0)
+    {
+        printf("\"Begone, leave the dead in peace!\"\n\n");
+    }
+    else
+    {
+        printf("I don't know what you want to read.\n\n");
+    }
+}
+
+void executeGo(const char *noun)
+{
+    if (noun == NULL)
+    {
+        printf("Where do you want to go?\n\n");
+    }
+    else if (strcmp(noun, "kitchen") == 0)
+    {
+        loc_kitchen();
+    }
+    else
+    {
+        printf("I don't know where you want to go.\n\n");
+    }
+
 }
 
 // INT INPUT
@@ -172,45 +262,6 @@ int location2()
 } 
 
 
-int map() 
-{
-    showlocations();
-    // CHOOSE A LOCATION
-    do
-    {
-        printf("\nGo to: ");
-        choice(&answer);
-        
-        // CHECKS IF WE AREN'T IN THIS LOCATION ALREADY FIRST
-        if (current_loc == answer && answer != 0)
-        {
-            printf("You are already standing in the %s.\n\n", locs[answer].description);
-            command();
-            read = fWord();
-        }
-        else
-        {
-        switch (answer) // GO TO THE LOCATIONS
-            {
-                case 1: 
-                    printf("You entered the hall.\n");
-                    loc_hall(); break;
-                case 2: 
-                    printf("You entered the kitchen.\n");
-                    loc_kitchen();break;
-                case 3: 
-                    printf("You entered the living room.\n");
-                    loc_living(); break;
-                case 4: 
-                    loc_toilet(); break;
-                case 5: 
-                    loc_upstairs(); break;
-                default:
-                    printf("Come again?\n");
-            }
-        }
-    } while (gun != 2 || answer == 5 || current_loc == answer);
-}
 
 void showlocations() 
 {
@@ -420,21 +471,7 @@ void endGame()
     }
 }
 
-                
-// TITLE SCREEN & INTRODUCTION
-void startUp()
-{
-    // TITLE SCREEN
-    printf("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-    printf("\t\t\t G H O S T   M A N O R\n");
-    printf("\n");
-    printf("\t\tA  T E X T - A D V E N T U R E  G A M E");
-    printf("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n\n");    
-
-    // INTRODUCTION
-    printf("In the early 90s a girl paid a visit to a mansion, never to be seen again.\n");
-    printf("Rumors say she is still roaming around the mansion, waiting..\n");
-    printf("Find out if the stories are true are if it's just a hoax.\n"); 
-    printf("You can direct me with the use of some basic words.\n\n\n");
-    printf("You stand in front of the mansion, there is a sign on the door.\n\n");
+// -->
+void command() {
+    printf(">  ");
 }
