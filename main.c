@@ -3,21 +3,28 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 // FUNCTIONS
-int readLine();
-int execute();
-void startUp();
-void readLocation();
-void executeOpen();
-void executeOpenDoor();
-void executeOpenFridge();
-void executeReadSign();
-void executeGo();
-void locationRoom();
+static bool readLine();
+static int execute();
+static void startUp();
+static void readLocation();
+static void executeOpen();
+static void executeOpenDoor();
+static void executeOpenFridge();
+static void executeReadSign();
+static void executeGo();
+static void locationRoom();
+static void loc_kitchen();
+static void loc_living();
+static void loc_hall();
+static void loc_toilet();
+static void loc_upstairs();
+static void loc_firstFloor();
 
 // LOCATIONS
-struct location {
+static struct location {
     const char *description;
     const char *name;
 }
@@ -29,17 +36,11 @@ locs[] = {
     {"toilet", "toilet room"},
     {"upstairs", "first floor"},
 };
-void loc_kitchen();
-void loc_living();
-void loc_hall();
-void loc_toilet();
-void loc_upstairs();
-void loc_firstFloor();
 
 // INIT
-int answer, location;
-int bullets, key, gun = 0;
-char* current_loc = "hall";
+static int answer, location;
+static int bullets, key, gun = 0;
+static char* current_loc = "hall";
 static char input[100];
 
 // MAIN GAME
@@ -49,30 +50,15 @@ int main()
 
     while (readLine() && execute()); // GAME LOOP
 
-    return 0;
+    return false;
 }
 
 
 // FUNCTIONS
-void startUp()
-{
-    printf("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-    printf("\t\t\t G H O S T   M A N O R\n\n");
-    printf("\t\tA  T E X T - A D V E N T U R E  G A M E");
-    printf("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n\n");    
-
-    // INTRODUCTION
-    printf("In the early 90s a girl paid a visit to a mansion, never to be seen again.\n");
-    printf("Rumors say she is still roaming around the mansion, waiting..\n");
-    printf("Find out if the stories are true are if it's just a hoax.\n"); 
-    printf("You can direct me with the use of some basic words.\n\n\n");
-    printf("You stand in front of the mansion, there is a sign on the door.\n\n");
-}
-
 // COMMAND & READLINE
-int readLine ()
+bool readLine ()
 {
-    printf(">  ");
+    fputs(">  ", stdout);
     return fgets(input, sizeof(input), stdin) != NULL;
 }
 
@@ -94,30 +80,30 @@ int execute()
         else 
             printf("I don't know the word %s, try again.\n\n", verb);
     }
-    return 1;
+    return true;
 }
 
 void executeOpenDoor(const char *noun)
 {
     if (noun == NULL)
     {
-        printf("What do you want to open?\n\n");
+        puts("What do you want to open?\n");
     }
     else if (strcasecmp(noun, "door") == 0)
     {        
-        printf("You enter the mansion, seems like nobody's been here in years..\n");
-        printf("You now have access to the kitchen, toilet, living room & upstairs.\n\n");
+        puts("You enter the mansion, seems like nobody's been here in years..");
+        puts("You now have access to the kitchen, toilet, living room & upstairs.\n");
         readLocation();
     }
     else
     {
-        printf("I don't understand what you want to open.\n\n");
+        puts("I don't understand what you want to open.\n");
     }
 }
 
 void readLocation() 
 {
-    while (1)
+    while (true)
     {
         readLine();
         
@@ -130,7 +116,7 @@ void readLocation()
         }
         else
         {
-            printf("I don't understand where you want to go.\n\n");
+            puts("I don't understand where you want to go.\n");
         }
     }
 }
@@ -139,15 +125,15 @@ void executeOpenFridge(const char *noun)
 {
     if (noun == NULL)
     {
-        printf("What do you want to open?\n\n");
+        puts("What do you want to open?\n");
     }
     else if (strcasecmp(noun, "fridge") == 0)
     {        
-        printf("Oh wish you didnt opened that. Whatever's in it, it's definitely out-of-date.\n\n");
+        puts("Oh wish you didnt opened that. Whatever's in it, it's definitely out-of-date.\n");
     }
     else
     {
-        printf("I don't know what you want to open.\n\n");
+        puts("I don't know what you want to open.\n");
     }
 }
 
@@ -155,15 +141,15 @@ void executeReadSign(const char *noun)
 {
     if (noun == NULL)
     {
-        printf("What do you want to read?\n\n");
+        puts("What do you want to read?\n");
     }
     else if (strcasecmp(noun, "sign") == 0)
     {
-        printf("\"Begone, leave the dead in peace!\"\n\n");
+        puts("\"Begone, leave the dead in peace!\"\n");
     }
     else
     {
-        printf("I don't know what you want to read.\n\n");
+        puts("I don't know what you want to read.\n");
     }
 }
 
@@ -175,7 +161,7 @@ void executeGo(const char *noun)
     }
     else if (noun == NULL)
     {
-        printf("Where do you want to go?\n\n");
+        puts("Where do you want to go?\n");
     }
     else if (strcasecmp(noun, "kitchen") == 0)
     {
@@ -199,16 +185,16 @@ void executeGo(const char *noun)
     }
     else
     {
-        printf("I don't know where you want to go.\n\n");
+        puts("I don't know where you want to go.\n");
     }
 }
 
 void loc_hall()
 {
     current_loc = "hall"; // ADD LOCATION
-    printf("You have access to the kitchen, toilet, living room & upstairs.\n\n");
+    puts("You have access to the kitchen, toilet, living room & upstairs.\n");
     
-    while (1)
+    while (true)
     {
         readLine();
 
@@ -229,10 +215,10 @@ void loc_hall()
 void loc_kitchen()
 {
     current_loc = "kitchen"; // ADD LOCATION
-    printf("There are several cupboards and drawers ajar, there's also a weird\n");
-    printf("smell coming from the fridge.\n\n");
+    puts("There are several cupboards and drawers ajar, there's also a weird");
+    puts("smell coming from the fridge.\n");
 
-    while (1)
+    while (true)
     {
         readLine();
 
@@ -243,15 +229,15 @@ void loc_kitchen()
         {
             if (gun == 1) {
                 gun++;
-                printf("You filled your shotgun with bullets.\n");
-                printf("When you put the bullets in the gun, you hear a door being slammed shut upstairs.\n\n");
+                puts("You filled your shotgun with bullets.");
+                puts("When you put the bullets in the gun, you hear a door being slammed shut upstairs.\n");
             }
             else if (gun == 2 || bullets == 1){
-                printf("You already found ammo in the drawers.\n\n");
+                puts("You already found ammo in the drawers.\n");
             }
             else 
             {
-                printf("In one of the drawers you found some salt bullets. These might come in handy!\n\n");
+                puts("In one of the drawers you found some salt bullets. These might come in handy!\n");
                 bullets++;
             }
         } 
@@ -273,15 +259,15 @@ void loc_kitchen()
 void loc_living()
 {
     current_loc = "living"; // ADD LOCATION
-    printf("The furniture is covered with white cloth, but the colour has become\n");
-    printf("yellow out of age. The carpet has blood and dirt stains on it.\n");
+    puts("The furniture is covered with white cloth, but the colour has become");
+    puts("yellow out of age. The carpet has blood and dirt stains on it.");
     if (!gun)
     {
-        printf("Above the fireplace you see a double-barreled shotgun.\n");
+        puts("Above the fireplace you see a double-barreled shotgun.");
     }
-    printf("\n");
+    puts("");
 
-    while (1)
+    while (true)
     {
         readLine();
 
@@ -292,17 +278,17 @@ void loc_living()
         {
             if (bullets) {
                 gun = 2;
-                printf("You got yourself a gun, you filled it up with the salt bullets you found in the kitchen.\n");
-                printf("When you put the bullets in the gun, you hear a door being slammed shut upstairs.\n\n");
+                puts("You got yourself a gun, you filled it up with the salt bullets you found in the kitchen.");
+                puts("When you put the bullets in the gun, you hear a door being slammed shut upstairs.\n");
             }
             else if (gun > 0)
             {
-                printf("You already have the gun.\n\n");
+                puts("You already have the gun.\n");
             }
             else 
             {
                 gun++;
-                printf("You took the gun, empty.. We need some find some bullets.\n\n");
+                puts("You took the gun, empty.. We need some find some bullets.\n");
             }
         }
         else if (strcasecmp(verb, "go") == 0) 
@@ -319,7 +305,7 @@ void loc_living()
 void loc_toilet()
 {
     current_loc = "toilet"; 
-    printf("You sure have a small bladder, couldn't you go before we started playing?\n\n");
+    puts("You sure have a small bladder, couldn't you go before we started playing?\n");
     readLocation();
 }
 
@@ -327,18 +313,18 @@ void loc_upstairs()
 {
     current_loc = "upstairs"; 
     if (gun != 2) {
-        printf("Maybe we need to find something to defend ourself first.\n\n");
+        puts("Maybe we need to find something to defend ourself first.\n");
     }
     else
     {
-        printf("There are 2 doors, which one do you want to take? Left or right?\n\n");
+        puts("There are 2 doors, which one do you want to take? Left or right?\n");
         loc_firstFloor();
     }
 }
 
 void loc_firstFloor()
 {   
-    while (1)
+    while (true)
     {
         readLine();
 
@@ -347,12 +333,12 @@ void loc_firstFloor()
 
         if (strcasecmp(verb, "left") == 0) 
         {
-            printf("You entered a bedroom, there's a bed and a closet in there.\n\n");
+            puts("You entered a bedroom, there's a bed and a closet in there.\n");
             locationRoom();
         }
         else if (strcasecmp(verb, "right") == 0) 
         {
-            printf("It's locked.\n\n");
+            puts("It's locked.\n");
         } 
         else
         {
@@ -363,7 +349,7 @@ void loc_firstFloor()
 
 void locationRoom()
 {
-    while (1)
+    while (true)
     {
         readLine();
         
@@ -377,15 +363,32 @@ void locationRoom()
         } 
         else if (strcasecmp(verb, "open") == 0) 
         {
-            printf("OPEN CLOSET\n\n");
+            puts("OPEN CLOSET\n");
         }
         else if (strcasecmp(verb, "check") == 0) 
         {
-            printf("CHECK UNDER BED\n\n");
+            puts("CHECK UNDER BED\n");
         }
         else
         {
             printf("I don't know the word %s.\n\n", verb);
         }
     }
+}
+
+void startUp()
+{
+    puts("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
+            "\t\t\t G H O S T   M A N O R\n\n"
+            "\t\tA  T E X T - A D V E N T U R E  G A M E"
+            "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n"
+    );   
+
+    // INTRODUCTION
+    puts("In the early 90s a girl paid a visit to a mansion, never to be seen again.\n"
+            "Rumors say she is still roaming around the mansion, waiting..\n"
+            "Find out if the stories are true are if it's just a hoax.\n"
+            "You can direct me with the use of some basic words.\n\n\n"
+            "You stand in front of the mansion, there is a sign on the door.\n"
+    );
 }
