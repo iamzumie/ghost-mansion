@@ -10,8 +10,6 @@ static bool readLine();
 static int execute();
 static void startUp();
 static void executeOpen();
-static void executeOpenDoor();
-static void executeOpenFridge();
 static void executeReadSign();
 static void executeGo();
 static void locationRoom();
@@ -68,22 +66,17 @@ static int execute()
     char *verb = strtok(input, " \n");
     char *noun = strtok(NULL, " \n");
 
-    if (verb != NULL && inside == 0)
+    if (verb != NULL)
     {        
         if (strcasecmp(verb, "open") == 0) 
         {
-            executeOpenDoor(noun);
+            executeOpen(noun);
         }
         else if (strcasecmp(verb, "read") == 0) 
         {
             executeReadSign(noun);
         }
-        else 
-            printf("I don't know the word %s, try again.\n\n", verb);
-    }
-    else if (verb != NULL && inside == 1)
-    { 
-        if (strcasecmp(verb, "go") == 0)
+        else if (strcasecmp(verb, "go") == 0)
         {
             executeGo(noun);
         }
@@ -93,37 +86,25 @@ static int execute()
     return true;
 }
 
-static void executeOpenDoor(const char *noun)
+static void executeOpen(const char *noun)
 {
     if (noun == NULL)
     {
         puts("What do you want to open?\n");
     }
-    else if (strcasecmp(noun, "door") == 0)
+    else if (!inside && (strcasecmp(noun, "door") == 0))
     {        
         puts("You enter the mansion, seems like nobody's been here in years..");
         puts("You now have access to the kitchen, toilet, living room & upstairs.\n");
         inside = 1;
     }
-    else
-    {
-        puts("I don't understand what you want to open.\n");
-    }
-}
-
-static void executeOpenFridge(const char *noun)
-{
-    if (noun == NULL)
-    {
-        puts("What do you want to open?\n");
-    }
-    else if (strcasecmp(noun, "fridge") == 0)
+    else if (current_loc == "kitchen" && strcasecmp(noun, "fridge") == 0)
     {        
         puts("Oh wish you didnt opened that. Whatever's in it, it's definitely out-of-date.\n");
     }
     else
     {
-        puts("I don't know what you want to open.\n");
+        puts("I don't understand what you want to open.\n");
     }
 }
 
@@ -133,7 +114,7 @@ static void executeReadSign(const char *noun)
     {
         puts("What do you want to read?\n");
     }
-    else if (strcasecmp(noun, "sign") == 0)
+    else if (!inside && (strcasecmp(noun, "sign") == 0))
     {
         puts("\"Begone, leave the dead in peace!\"\n");
     }
@@ -153,23 +134,23 @@ static void executeGo(const char *noun)
     {
         puts("Where do you want to go?\n");
     }
-    else if (strcasecmp(noun, "kitchen") == 0)
+    else if (inside && (strcasecmp(noun, "kitchen") == 0))
     {
         loc_kitchen();
     }
-    else if (strcasecmp(noun, "toilet") == 0)
+    else if (inside && (strcasecmp(noun, "toilet") == 0))
     {
         loc_toilet();
     }
-    else if (strcasecmp(noun, "hall") == 0)
+    else if (inside && (strcasecmp(noun, "hall") == 0))
     {
         loc_hall();
     }
-    else if (strcasecmp(noun, "living") == 0)
+    else if (inside && (strcasecmp(noun, "living") == 0))
     {
         loc_living();
     }
-    else if (strcasecmp(noun, "upstairs") == 0)
+    else if (inside && (strcasecmp(noun, "upstairs") == 0))
     {
         loc_upstairs();
     }
@@ -216,7 +197,7 @@ static void loc_kitchen()
         } 
         else if (strcasecmp(verb, "open") == 0) 
         {
-            executeOpenFridge(noun);
+            executeOpen(noun);
         } 
         else if (strcasecmp(verb, "go") == 0) 
         {
