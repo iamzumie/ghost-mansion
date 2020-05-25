@@ -10,9 +10,9 @@ static bool readLine();
 static int execute();
 static void startUp();
 static void executeOpen();
-static void executeReadSign();
+static void executeRead();
 static void executeGo();
-static void locationRoom();
+static void executeTake();
 
 // LOCATIONS
 typedef struct LOCATION {
@@ -22,10 +22,11 @@ typedef struct LOCATION {
 LOCATION locs[] = {
     {""},
     {"hall",  "You have access to the kitchen, toilet, living room & upstairs.\n"},
-    {"kitchen", "There are several cupboards and drawers ajar, there's also a weird\nsmell coming from the fridge.\n"},
-    {"living room", "The furniture is covered with white cloth, but the colour has become\nyellow out of age. The carpet has blood and dirt stains on it.\n"},
+    {"kitchen", "There are several drawers ajar, there's also a weird smell coming\nfrom the fridge.\n"},
+    {"living room", "The furniture is covered with white cloth, but the colour has become\nyellow out of age. The carpet has blood and dirt stains on it."},
     {"toilet", "You sure have a small bladder, couldn't you go before we started playing?\n"},
-    {"upstairs", "first floor"},
+    {"upstairs", "There are 2 doors, which one do you want to take? Left or right?\n"},
+    {"first floor", "You entered a bedroom, there's a bed and a closet in there.\n"}
 };
 
 static void loc_kitchen();
@@ -33,13 +34,13 @@ static void loc_living();
 static void loc_hall();
 static void loc_toilet();
 static void loc_upstairs();
+static void locationRoom();
 
 // INIT
 static int answer, location;
 static int bullets, key, gun = 0;
 static char input[100];
-static char* current_loc = "hall";  
-static int cur_location = 0;  
+static char* current_loc = "hall";
 static int inside = 0;
 
 // MAIN GAME
@@ -74,11 +75,15 @@ static int execute()
         }
         else if (strcasecmp(verb, "read") == 0) 
         {
-            executeReadSign(noun);
+            executeRead(noun);
         }
         else if (strcasecmp(verb, "go") == 0)
         {
             executeGo(noun);
+        }
+        else if (strcasecmp(verb, "take") == 0)
+        {
+            executeTake(noun);
         }
         else 
             printf("I don't know the word %s, try again.\n\n", verb);
@@ -94,7 +99,7 @@ static void executeOpen(const char *noun)
     }
     else if (!inside && (strcasecmp(noun, "door") == 0))
     {        
-        puts("You enter the mansion, seems like nobody's been here in years..");
+        puts("You enter the mansion's hall, seems like nobody's been here in years..");
         puts("You now have access to the kitchen, toilet, living room & upstairs.\n");
         inside = 1;
     }
@@ -102,13 +107,34 @@ static void executeOpen(const char *noun)
     {        
         puts("Oh wish you didnt opened that. Whatever's in it, it's definitely out-of-date.\n");
     }
+    else if (current_loc == "locationRoom" && strcasecmp(noun, "closet") == 0) 
+    {
+        puts("OPEN CLOSET\n");
+    }
+    else if (current_loc == "kitchen" && (strcasecmp(noun, "drawer") == 0 || strcasecmp(noun, "drawers") == 0))
+    {
+        if (gun == 1) {
+            gun = 2;
+            bullets = 1;
+            puts("You filled your shotgun with bullets.");
+            puts("When you put the bullets in the gun, you hear a door being slammed shut upstairs.\n");
+        }
+        else if (gun == 2 && bullets == 1){
+            puts("You already found ammo in the drawers.\n");
+        }
+        else 
+        {
+            puts("In one of the drawers you found some salt bullets. These might come in handy!\n");
+            bullets = 1;
+        }
+    }
     else
     {
         puts("I don't understand what you want to open.\n");
     }
 }
 
-static void executeReadSign(const char *noun)
+static void executeRead(const char *noun)
 {
     if (noun == NULL)
     {
@@ -154,9 +180,42 @@ static void executeGo(const char *noun)
     {
         loc_upstairs();
     }
+    else if (current_loc == "upstairs" && strcasecmp(noun, "right") == 0) 
+    {
+        puts("It's locked.\n");
+    } 
+    else if (current_loc == "upstairs" && strcasecmp(noun, "left") == 0) 
+    {
+        locationRoom();
+    }
     else
     {
         puts("I don't know where you want to go.\n");
+    }
+}
+
+static void executeTake(const char *noun)
+{
+    if (current_loc == "living")
+    {
+        if (bullets) {
+            gun = 2;
+            puts("You got yourself a gun, you filled it up with the salt bullets you found in the kitchen.");
+            puts("When you put the bullets in the gun, you hear a door being slammed shut upstairs.\n");
+        }
+        else if (gun > 0)
+        {
+            puts("You already have the gun.\n");
+        }
+        else 
+        {
+            gun++;
+            puts("You took the gun, empty.. We need some find some bullets.\n");
+        }
+    }
+    else
+    {
+        puts("There is nothing to take.\n");
     }
 }
 
@@ -171,43 +230,7 @@ static void loc_kitchen()
 {
     current_loc = "kitchen"; // ADD LOCATION
     puts(locs[2].enter_msg);
-
-    while (true)
-    {
-        readLine();
-
-        char *verb = strtok(input, " \n");
-        char *noun = strtok(NULL, " \n");
-
-        if (strcasecmp(verb, "search") == 0) 
-        {
-            if (gun == 1) {
-                gun++;
-                puts("You filled your shotgun with bullets.");
-                puts("When you put the bullets in the gun, you hear a door being slammed shut upstairs.\n");
-            }
-            else if (gun == 2 || bullets == 1){
-                puts("You already found ammo in the drawers.\n");
-            }
-            else 
-            {
-                puts("In one of the drawers you found some salt bullets. These might come in handy!\n");
-                bullets++;
-            }
-        } 
-        else if (strcasecmp(verb, "open") == 0) 
-        {
-            executeOpen(noun);
-        } 
-        else if (strcasecmp(verb, "go") == 0) 
-        {
-            executeGo(noun);
-        }
-        else
-        {
-            printf("I don't know what you mean.\n\n");
-        }
-    }
+    return;
 }
 
 static void loc_living()
@@ -219,40 +242,7 @@ static void loc_living()
         puts("Above the fireplace you see a double-barreled shotgun.");
     }
     puts("");
-
-    while (true)
-    {
-        readLine();
-
-        char* verb = strtok(input, " \n");
-        char* noun = strtok(NULL, " \n");
-
-        if (strcasecmp(verb, "take") == 0) 
-        {
-            if (bullets) {
-                gun = 2;
-                puts("You got yourself a gun, you filled it up with the salt bullets you found in the kitchen.");
-                puts("When you put the bullets in the gun, you hear a door being slammed shut upstairs.\n");
-            }
-            else if (gun > 0)
-            {
-                puts("You already have the gun.\n");
-            }
-            else 
-            {
-                gun++;
-                puts("You took the gun, empty.. We need some find some bullets.\n");
-            }
-        }
-        else if (strcasecmp(verb, "go") == 0) 
-        {
-            executeGo(noun);
-        } 
-        else
-        {
-            printf("I don't know the word %s.\n\n", verb);
-        }
-    }
+    return;
 }
 
 static void loc_toilet()
@@ -269,57 +259,15 @@ static void loc_upstairs()
         puts("Maybe we need to find something to defend ourself first.\n");
         return;
     }
-    puts("There are 2 doors, which one do you want to take? Left or right?\n");
-    while (true)
-    {
-        readLine();
-
-        char* verb = strtok(input, " \n");
-        char* noun = strtok(NULL, " \n");
-
-        if (strcasecmp(verb, "left") == 0) 
-        {
-            puts("You entered a bedroom, there's a bed and a closet in there.\n");
-            locationRoom();
-        }
-        else if (strcasecmp(verb, "right") == 0) 
-        {
-            puts("It's locked.\n");
-        } 
-        else
-        {
-            printf("I don't know the word %s.\n\n", verb);
-        }
-    }
+    puts(locs[5].enter_msg);
+    return;
 }
 
 static void locationRoom()
 {
-    while (true)
-    {
-        readLine();
-        
-        char* verb = strtok(input, " \n");
-        char* noun = strtok(NULL, " \n");
-
-        if (strcasecmp(verb, "leave") == 0) 
-        {
-            puts("There are 2 doors, which one do you want to take? Left or right?\n");
-            return;
-        } 
-        else if (strcasecmp(verb, "open") == 0) 
-        {
-            puts("OPEN CLOSET\n");
-        }
-        else if (strcasecmp(verb, "check") == 0) 
-        {
-            puts("CHECK UNDER BED\n");
-        }
-        else
-        {
-            printf("I don't know the word %s.\n\n", verb);
-        }
-    }
+    current_loc = "locationRoom";
+    puts(locs[6].enter_msg);
+    return;
 }
 
 static void startUp()
