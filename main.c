@@ -13,12 +13,6 @@ static void executeOpen();
 static void executeRead();
 static void executeGo();
 static void executeTake();
-static void loc_kitchen();
-static void loc_living();
-static void loc_hall();
-static void loc_toilet();
-static void loc_upstairs();
-static void locationRoom();
 
 // INIT
 static int bullets, key, gun = 0;
@@ -38,18 +32,17 @@ VERBS verbs[] = {
     {"take", executeTake}
 };
 
-typedef struct NOUNS {
+typedef struct LOCATION {
     const char * word;
-    void (*function) (void); // helper function?
     const char *enter_msg;
-} NOUNS;
-NOUNS nouns[] = {
-    {"hall",  loc_hall, "You have access to the kitchen, toilet, living room & upstairs.\n"},
-    {"kitchen", loc_kitchen, "There are several drawers ajar, there's also a weird smell coming\nfrom the fridge.\n"},
-    {"living", loc_living, "The furniture is covered with white cloth, but the colour has become\nyellow out of age. The carpet has blood and dirt stains on it.\n"},
-    {"toilet", loc_toilet, "You sure have a small bladder, couldn't you go before we started playing?\n"},
-    {"upstairs", loc_upstairs, "There are 2 doors, which one do you want to take? Left or right?\n"},
-    {"first", locationRoom, "You entered a bedroom, there's a bed and a closet in there.\n"}
+} LOCATION;
+LOCATION location[] = {
+    {"hall", "You have access to the kitchen, toilet, living room & upstairs.\n"},
+    {"kitchen", "There are several drawers ajar, there's also a weird smell coming\nfrom the fridge.\n"},
+    {"living", "The furniture is covered with white cloth, but the colour has become\nyellow out of age. The carpet has blood and dirt stains on it.\nAbove the fireplace you see a double-barreled shotgun.\n"},
+    {"toilet", "You sure have a small bladder, couldn't you go before we started playing?\n"},
+    {"upstairs", "There are 2 doors, which one do you want to take? Left or right?\n"},
+    {"first", "You entered a bedroom, there's a bed and a closet in there.\n"}
 };
 
 
@@ -100,14 +93,12 @@ static void executeGo(const char *noun)
             printf("You are already standing in the %s\n\n", current_loc);
             return;
         }
-        else if (inside && strcasecmp(noun, nouns[i].word) == 0) {
-            puts(nouns[i].enter_msg);
-            current_loc = nouns[i].word;
-            nouns[i].function;
+        else if (inside && strcasecmp(noun, location[i].word) == 0) {
+            puts(location[i].enter_msg);
+            current_loc = location[i].word;
             return;
         }
     }
-
     puts("I don't understand where you want to go.\n");
     return;
 }
@@ -196,46 +187,6 @@ static void executeTake(const char *noun)
     }
 }
 
-static void loc_hall()
-{
-    return;
-}
-
-static void loc_kitchen()
-{
-    return;
-}
-
-static void loc_living()
-{
-    if (!gun)
-    {
-        puts("Above the fireplace you see a double-barreled shotgun.");
-    }
-    puts("");
-    return;
-}
-
-static void loc_toilet()
-{
-    return;
-}
-
-static void loc_upstairs()
-{   
-    if (gun != 2) {
-        puts("Maybe we need to find something to defend ourself first.\n");
-        return;
-    }
-    return;
-}
-
-static void locationRoom()
-{
-    //current_loc = "locationRoom";
-    return;
-}
-
 static void startUp()
 {
     puts("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
@@ -249,6 +200,6 @@ static void startUp()
             "Rumors say she is still roaming around the mansion, waiting..\n"
             "Find out if the stories are true are if it's just a hoax.\n"
             "You can direct me with the use of some basic words.\n\n\n"
-            "You stand in front of the mansion, there is a sign on the door.\n"
-    );
+            "You stand in front of the mansion, there is a sign on the door.\n")
+    ;
 }
