@@ -22,8 +22,8 @@ static int inside = 0;
 
 // STRUCTS
 typedef struct VERBS {
-    const char* word;
-    void (*function) (char* noun); // helper function?
+    const char * word;
+    void (*function) (char * noun); // helper function
 } VERBS;
 VERBS verbs[] = {
     {"go", executeGo},
@@ -43,6 +43,27 @@ LOCATION location[] = {
     {"toilet", "You sure have a small bladder, couldn't you go before we started playing?\n"},
     {"upstairs", "There are 2 doors, which one do you want to take? Left or right?\n"},
     {"first", "You entered a bedroom, there's a bed and a closet in there.\n"}
+};
+
+typedef struct OPENABLE {
+    const char * item;
+    const char * location;
+    const char * opened_msg;
+} OPENABLE;
+OPENABLE openable[] = {
+    {"drawer", "kitchen", "In one of the drawers you see some ammo.\n"},
+    {"fridge", "kitchen", "Oh wish you didnt opened that. Whatever's in it, it's definitely out-of-date.\n"},
+    {"closet", "first", "OPEN CLOSET.\n"}
+};
+
+typedef struct TAKE {
+    const char * item;
+    const char * location;
+    const char * taken_msg;
+} TAKE;
+TAKE take [] = {
+    {"gun", "living", "You got yourself a gun, you filled it up with the salt bullets you found in the kitchen.\nWhen you put the bullets in the gun, you hear a door being slammed shut upstairs.\n"},
+    {"ammo", "kitchen", "These might come in handy!\nWhen you take the bullets, you hear a door being slammed shut upstairs.\n"}
 };
 
 
@@ -71,6 +92,10 @@ static int execute()
     char *verb = strtok(buffer, " \n");
     char *noun = strtok(NULL, " \n");
 
+    if (strcasecmp(verb, "quit") == 0)
+    {
+        return false;
+    }
     for (int i = 0; i < sizeof(VERBS); i++)
     {
         if (strcasecmp(verb, verbs[i].word) == 0)
@@ -105,54 +130,30 @@ static void executeGo(const char *noun)
 
 static void executeOpen(const char *noun)
 {
-    if (noun == NULL)
+    for (int j = 0; j < sizeof(openable); j++)
     {
-        puts("What do you want to open?\n");
-    }
-    else if (!inside && (strcasecmp(noun, "door") == 0))
-    {        
-        puts("You enter the mansion's hall, seems like nobody's been here in years..");
-        puts("You now have access to the kitchen, toilet, living room & upstairs.\n");
-        inside = 1;
-    }
-    else if (current_loc == "kitchen" && strcasecmp(noun, "fridge") == 0)
-    {        
-        puts("Oh wish you didnt opened that. Whatever's in it, it's definitely out-of-date.\n");
-    }
-    else if (current_loc == "locationRoom" && strcasecmp(noun, "closet") == 0) 
-    {
-        puts("OPEN CLOSET\n");
-    }
-    else if (current_loc == "kitchen" && (strcasecmp(noun, "drawer") == 0 || strcasecmp(noun, "drawers") == 0))
-    {
-        if (gun == 1) {
-            gun = 2;
-            bullets = 1;
-            puts("You filled your shotgun with bullets.");
-            puts("When you put the bullets in the gun, you hear a door being slammed shut upstairs.\n");
-        }
-        else if (gun == 2 && bullets == 1){
-            puts("You already found ammo in the drawers.\n");
-        }
-        else 
+        if(!inside && strcasecmp(noun, "door") == 0) 
         {
-            puts("In one of the drawers you found some salt bullets. These might come in handy!\n");
-            bullets = 1;
+            puts("You enter the mansion's hall, seems like nobody's been here in years..\nYou now have access to the kitchen, toilet, living room & upstairs.\n");
+            inside = 1;
+            return;
         }
-    }
-    else
-    {
-        puts("I don't understand what you want to open.\n");
+        else if (inside && (strcasecmp(noun, openable[j].item) == 0) && (strcasecmp(current_loc, openable[j].location) == 0))
+        {
+            puts(openable[j].opened_msg);
+            return;
+        }
+        else
+        {
+            puts("I don't understand what you want to open.\n");
+            return;        
+        }   
     }
 }
 
 static void executeRead(const char *noun)
 {
-    if (noun == NULL)
-    {
-        puts("What do you want to read?\n");
-    }
-    else if (!inside && (strcasecmp(noun, "sign") == 0))
+    if (!inside && (strcasecmp(noun, "sign") == 0))
     {
         puts("\"Begone, leave the dead in peace!\"\n");
     }
@@ -164,27 +165,16 @@ static void executeRead(const char *noun)
 
 static void executeTake(const char *noun)
 {
-    if (current_loc == "living")
+    for (int k = 0; k < sizeof(take); k++)
     {
-        if (bullets) {
-            gun = 2;
-            puts("You got yourself a gun, you filled it up with the salt bullets you found in the kitchen.");
-            puts("When you put the bullets in the gun, you hear a door being slammed shut upstairs.\n");
-        }
-        else if (gun > 0)
+        if ((strcasecmp(current_loc, take[k].location) == 0) && strcasecmp(noun, take[k].item) == 0)
         {
-            puts("You already have the gun.\n");
-        }
-        else 
-        {
-            gun++;
-            puts("You took the gun, empty.. We need some find some bullets.\n");
+            puts(take[k].taken_msg);
+            return;
         }
     }
-    else
-    {
-        puts("There is nothing to take.\n");
-    }
+    puts("I don't understand what you want to take.\n");
+    return;
 }
 
 static void startUp()
@@ -200,6 +190,6 @@ static void startUp()
             "Rumors say she is still roaming around the mansion, waiting..\n"
             "Find out if the stories are true are if it's just a hoax.\n"
             "You can direct me with the use of some basic words.\n\n\n"
-            "You stand in front of the mansion, there is a sign on the door.\n")
-    ;
+            "You stand in front of the mansion, there is a sign on the door.\n"
+    );
 }
