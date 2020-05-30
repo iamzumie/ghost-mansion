@@ -38,33 +38,32 @@ typedef struct LOCATION {
 LOCATION location[] = {
     {"hall", "You have access to the kitchen, toilet, living room & upstairs.\n"},
     {"kitchen", "There are several drawers ajar, there's also a weird smell coming\nfrom the fridge.\n"},
-    {"living", "The furniture is covered with white cloth, but the colour has become\nyellow out of age. The carpet has blood and dirt stains on it.\nAbove the fireplace you see a double-barreled shotgun.\n"},
+    {"living", "The furniture is covered with white cloth, but the colour has become\nyellow out of age. Above the fireplace you see a double-barreled shotgun.\n"},
     {"toilet", "You sure have a small bladder, couldn't you go before we started playing?\n"},
     {"upstairs", "There are 2 doors, which one do you want to take? Left or right?\n"},
     {"first", "You entered a bedroom, there's a bed and a closet in there.\n"}
 };
 
-typedef struct OBJECT {
-    const char *item;
-    const char *location;
-    const char *msg;
-} OBJECT;
-OBJECT obj [] = {
-    {"drawer", "kitchen", "In one of the drawers you see some ammo.\n"},
-    {"fridge", "kitchen", "Oh wish you didnt opened that. Whatever's in it, it's definitely out-of-date.\n"}
+enum flag {
+    CAN_OPEN = 0x01,
+    CAN_TAKE = 0x02,
+    CAN_READ = 0x04,
+    CANT_TAKE = 0x08
 };
 
-
-typedef struct TAKE {
-    int value;
-    const char *item;
+typedef struct OBJECTS {
+    unsigned flag;
     const char *location;
-    const char *taken_msg;
+    const char *item;
+    const char *msg;
     const char *already;
-} TAKE;
-TAKE take [] = {
-    {0, "gun", "living", "You got yourself a gun, you filled it up with the salt bullets you found in the kitchen.\nWhen you put the bullets in the gun, you hear a door being slammed shut upstairs.\n", "You already took the gun.\n"},
-    {0, "ammo", "kitchen", "These might come in handy!\nWhen you take the bullets, you hear a door being slammed shut upstairs.\n","You already took ammo.\n"}
+} OBJECTS;
+OBJECTS objs[] = {
+    {CAN_OPEN, "kitchen", "drawer", "In one of the drawers you see some ammo.\n"},
+    {CAN_OPEN, "kitchen", "fridge", "Oh wish you didnt opened that. Whatever's in it, it's definitely out-of-date.\n"},
+    {CAN_OPEN, "upstairs", "open", "OPEN CLOSET.\n", ""},
+    {CAN_TAKE, "kitchen", "ammo", "These might come in handy later!\n", "You already took ammo.\n"},
+    {CAN_TAKE, "living", "gun", "You got yourself a gun, you filled it up with the salt bullets you found in the kitchen.\nWhen you put the bullets in the gun, you hear a door being slammed shut upstairs.\n", "You already took the gun.\n"}
 };
 
 
@@ -112,7 +111,7 @@ static int execute()
 
 static void executeGo(const char *noun)
 {
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < sizeof(location); i++)
     {
         if (inside && strcasecmp(noun, current_loc) == 0)
         {
@@ -143,20 +142,19 @@ static void executeRead(const char *noun)
 
 static void executeTake(const char *noun)
 {
-    for (int k = 0; k < 2;)
+    for (int k = 0; k < sizeof(objs); k++)
     {
-        if (take[k].value == 0 && (strcasecmp(current_loc, take[k].location) == 0) && strcasecmp(noun, take[k].item) == 0)
+        if (objs[k].location == current_loc && strcasecmp(noun, objs[k].item) == 0 && objs[k].flag == CAN_TAKE)
         {
-            puts(take[k].taken_msg);
-            take[k].value = 1;
+            puts(objs[k].msg);
+            objs[k].flag = CANT_TAKE;
             return;
         }
-        else if (take[k].value == 1 && (strcasecmp(current_loc, take[k].location) == 0) && strcasecmp(noun, take[k].item) == 0)
+        else if (objs[k].location == current_loc && strcasecmp(noun, objs[k].item) == 0 && objs[k].flag == CANT_TAKE)
         {
-            puts(take[k].already);
+            puts(objs[k].already);
             return;
         }
-        k++;
     }
     puts("I don't understand what you want to take.\n");
     return;
@@ -170,11 +168,11 @@ static void executeOpen(const char *noun)
         inside = 1;
         return;
     }
-    for (int l = 0; l < sizeof(obj); l++)
+    for (int l = 0; l < sizeof(objs); l++)
     {
-        if (inside && strcasecmp(noun, obj[l].item) == 0 && obj->location == current_loc)
+        if (inside && strcasecmp(noun, objs[l].item) == 0 && objs[l].location == current_loc)
         {
-            puts(obj[l].msg);
+            puts(objs[l].msg);
             return;
         }
     }
