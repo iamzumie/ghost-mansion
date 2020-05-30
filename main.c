@@ -15,7 +15,6 @@ static void executeGo();
 static void executeTake();
 
 // INIT
-static int bullets, key, gun = 0;
 static char buffer[100];
 static const char* current_loc = "hall";
 static int inside = 0;
@@ -45,25 +44,27 @@ LOCATION location[] = {
     {"first", "You entered a bedroom, there's a bed and a closet in there.\n"}
 };
 
-typedef struct OPENABLE {
-    const char * item;
-    const char * location;
-    const char * opened_msg;
-} OPENABLE;
-OPENABLE openable[] = {
+typedef struct OBJECT {
+    const char *item;
+    const char *location;
+    const char *msg;
+} OBJECT;
+OBJECT obj [] = {
     {"drawer", "kitchen", "In one of the drawers you see some ammo.\n"},
-    {"fridge", "kitchen", "Oh wish you didnt opened that. Whatever's in it, it's definitely out-of-date.\n"},
-    {"closet", "first", "OPEN CLOSET.\n"}
+    {"fridge", "kitchen", "Oh wish you didnt opened that. Whatever's in it, it's definitely out-of-date.\n"}
 };
 
+
 typedef struct TAKE {
-    const char * item;
-    const char * location;
-    const char * taken_msg;
+    int value;
+    const char *item;
+    const char *location;
+    const char *taken_msg;
+    const char *already;
 } TAKE;
 TAKE take [] = {
-    {"gun", "living", "You got yourself a gun, you filled it up with the salt bullets you found in the kitchen.\nWhen you put the bullets in the gun, you hear a door being slammed shut upstairs.\n"},
-    {"ammo", "kitchen", "These might come in handy!\nWhen you take the bullets, you hear a door being slammed shut upstairs.\n"}
+    {0, "gun", "living", "You got yourself a gun, you filled it up with the salt bullets you found in the kitchen.\nWhen you put the bullets in the gun, you hear a door being slammed shut upstairs.\n", "You already took the gun.\n"},
+    {0, "ammo", "kitchen", "These might come in handy!\nWhen you take the bullets, you hear a door being slammed shut upstairs.\n","You already took ammo.\n"}
 };
 
 
@@ -128,29 +129,6 @@ static void executeGo(const char *noun)
     return;
 }
 
-static void executeOpen(const char *noun)
-{
-    for (int j = 0; j < sizeof(openable); j++)
-    {
-        if(!inside && strcasecmp(noun, "door") == 0) 
-        {
-            puts("You enter the mansion's hall, seems like nobody's been here in years..\nYou now have access to the kitchen, toilet, living room & upstairs.\n");
-            inside = 1;
-            return;
-        }
-        else if (inside && (strcasecmp(noun, openable[j].item) == 0) && (strcasecmp(current_loc, openable[j].location) == 0))
-        {
-            puts(openable[j].opened_msg);
-            return;
-        }
-        else
-        {
-            puts("I don't understand what you want to open.\n");
-            return;        
-        }   
-    }
-}
-
 static void executeRead(const char *noun)
 {
     if (!inside && (strcasecmp(noun, "sign") == 0))
@@ -165,15 +143,42 @@ static void executeRead(const char *noun)
 
 static void executeTake(const char *noun)
 {
-    for (int k = 0; k < sizeof(take); k++)
+    for (int k = 0; k < 2;)
     {
-        if ((strcasecmp(current_loc, take[k].location) == 0) && strcasecmp(noun, take[k].item) == 0)
+        if (take[k].value == 0 && (strcasecmp(current_loc, take[k].location) == 0) && strcasecmp(noun, take[k].item) == 0)
         {
             puts(take[k].taken_msg);
+            take[k].value = 1;
+            return;
+        }
+        else if (take[k].value == 1 && (strcasecmp(current_loc, take[k].location) == 0) && strcasecmp(noun, take[k].item) == 0)
+        {
+            puts(take[k].already);
+            return;
+        }
+        k++;
+    }
+    puts("I don't understand what you want to take.\n");
+    return;
+}
+
+static void executeOpen(const char *noun)
+{
+    if(!inside && strcasecmp(noun, "door") == 0) 
+    {
+        puts("You enter the mansion's hall, seems like nobody's been here in years..\nYou now have access to the kitchen, toilet, living room & upstairs.\n");
+        inside = 1;
+        return;
+    }
+    for (int l = 0; l < sizeof(obj); l++)
+    {
+        if (inside && strcasecmp(noun, obj[l].item) == 0 && obj->location == current_loc)
+        {
+            puts(obj[l].msg);
             return;
         }
     }
-    puts("I don't understand what you want to take.\n");
+    puts("I don't understand what you want to open.\n");
     return;
 }
 
@@ -183,10 +188,7 @@ static void startUp()
             "\t\t\t G H O S T   M A N O R\n\n"
             "\t\tA  T E X T - A D V E N T U R E  G A M E"
             "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n"
-    );   
-
-    // INTRODUCTION
-    puts("In the early 90s a girl paid a visit to a mansion, never to be seen again.\n"
+            "In the early 90s a girl paid a visit to a mansion, never to be seen again.\n"
             "Rumors say she is still roaming around the mansion, waiting..\n"
             "Find out if the stories are true are if it's just a hoax.\n"
             "You can direct me with the use of some basic words.\n\n\n"
