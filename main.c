@@ -1,12 +1,15 @@
 #include <stdio.h>
 #include <time.h>
 #include <string.h>
+#ifdef __unix__
 #include <strings.h>	/* Defines: strcasecmp */
+#endif
 #include <ctype.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
-#define UNUSED(var) (void)(var)
+
+#define UNUSED(var) (void)(var)	/* Pretends to use an unused parameter. */
 
 // FUNCTIONS
 static int readLine();
