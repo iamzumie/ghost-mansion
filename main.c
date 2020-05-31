@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include <time.h>
 #include <string.h>
+#include <strings.h>	/* Defines: strcasecmp */
 #include <ctype.h>
 #include <stdlib.h>
 #include <stdbool.h>
+
+#define UNUSED(var) (void)(var)
 
 // FUNCTIONS
 static int readLine();
@@ -27,26 +30,39 @@ typedef struct VERBS {
     const char * word;
     void (*function) (char * noun); // helper function
 } VERBS;
+
 VERBS verbs[] = {
-    {"quit", exitGame},
-    {"go", executeGo},
-    {"open", executeOpen},
-    {"read", executeRead},
-    {"take", executeTake}
+    { "quit", exitGame},
+    { "go",   executeGo},
+    { "open", executeOpen},
+    { "read", executeRead},
+    { "take", executeTake}
 };
+
+#define NUM_VERBS ((int)(sizeof(verbs) / sizeof(VERBS)))
 
 typedef struct LOCATION {
     const char * word;
-    const char *enter_msg;
+    const char * enter_msg;
 } LOCATION;
-LOCATION location[] = {
-    {"hall", "You have access to the kitchen, toilet, living room & upstairs.\n"},
-    {"kitchen", "There are several drawers ajar, there's also a weird smell coming\nfrom the fridge.\n"},
-    {"living", "The furniture is covered with white cloth, but the colour has become\nyellow out of age. Above the fireplace you see a double-barreled shotgun.\n"},
-    {"toilet", "You sure have a small bladder, couldn't you go before we started playing?\n"},
-    {"upstairs", "There are 2 doors, which one do you want to take? Left or right?\n"},
-    {"first", "You entered a bedroom, there's a bed and a closet in there.\n"}
+
+LOCATION locations[] = {
+    { "hall",     "You have access to the kitchen, toilet, living room"
+	   	  " & upstairs.\n" },
+    { "kitchen",  "There are several drawers ajar, there's also a weird"
+	          " smell coming\nfrom the fridge.\n" },
+    { "living",	  "The furniture is covered with white cloth, but the"
+	    	  " colour has become\nyellowed out of age. Above the"
+	          " fireplace you see a double-barreled shotgun.\n" },
+    { "toilet",	  "You sure have a small bladder, couldn't you go "
+	          " before we started playing?\n" },
+    { "upstairs", "There are 2 doors, which one do you want to take?"
+	          " Left or right?\n" },
+    { "first",    "You entered a bedroom, there's a bed and a closet"
+	          " in there.\n" },
 };
+
+#define NUM_LOCATIONS ((int)(sizeof(locations) / sizeof(LOCATION)))
 
 enum flag {
     CAN_OPEN = 0x01,
@@ -62,14 +78,16 @@ typedef struct OBJECTS {
     const char *msg;
     const char *already;
 } OBJECTS;
+
 OBJECTS objs[] = {
-    {CAN_OPEN, "kitchen", "drawer", "In one of the drawers you see some ammo.\n"},
-    {CAN_OPEN, "kitchen", "fridge", "Oh wish you didnt opened that. Whatever's in it, it's definitely out-of-date.\n"},
-    {CAN_OPEN, "upstairs", "open", "OPEN CLOSET.\n", ""},
+    {CAN_OPEN, "kitchen", "drawer", "In one of the drawers you see some ammo.\n", NULL},
+    {CAN_OPEN, "kitchen", "fridge", "Oh wish you didnt opened that. Whatever's in it, it's definitely out-of-date.\n", NULL },
+    {CAN_OPEN, "upstairs", "open", "OPEN CLOSET.\n", NULL },
     {CAN_TAKE, "kitchen", "ammo", "These might come in handy later!\n", "You already took ammo.\n"},
     {CAN_TAKE, "living", "gun", "You got yourself a gun, you filled it up with the salt bullets you found in the kitchen.\nWhen you put the bullets in the gun, you hear a door being slammed shut upstairs.\n", "You already took the gun.\n"}
 };
 
+#define NUM_OBJECTS ((int)(sizeof(objs) / sizeof(OBJECTS)))
 
 // MAIN GAME
 int main()
@@ -100,7 +118,7 @@ static void execute(char *buffer)
     char *verb = strtok(buffer, " \n");
     char *noun = strtok(NULL, " \n");
 
-    for (int i = 0; i < sizeof(VERBS); i++)
+    for (int i = 0; i < NUM_VERBS; i++)
     {
         if (strcasecmp(verb, verbs[i].word) == 0)
         {
@@ -112,22 +130,23 @@ static void execute(char *buffer)
 
 static void exitGame(const char *noun)
 {
-    whilePlaying = false;
-    return;
+	UNUSED(noun);
+
+	whilePlaying = false;
 }
 
 static void executeGo(const char *noun)
 {
-    for (int i = 0; i < sizeof(location); i++)
+    for (int i = 0; i < NUM_LOCATIONS; i++)
     {
         if (inside && strcasecmp(noun, current_loc) == 0)
         {
             printf("You are already standing in the %s\n\n", current_loc);
             return;
         }
-        else if (inside && strcasecmp(noun, location[i].word) == 0) {
-            puts(location[i].enter_msg);
-            current_loc = location[i].word;
+        else if (inside && strcasecmp(noun, locations[i].word) == 0) {
+            puts(locations[i].enter_msg);
+            current_loc = locations[i].word;
             return;
         }
     }
@@ -149,7 +168,7 @@ static void executeRead(const char *noun)
 
 static void executeTake(const char *noun)
 {
-    for (int k = 0; k < sizeof(objs); k++)
+    for (int k = 0; k < NUM_OBJECTS; k++)
     {
         if (objs[k].location == current_loc && strcasecmp(noun, objs[k].item) == 0 && objs[k].flag == CAN_TAKE)
         {
@@ -175,7 +194,7 @@ static void executeOpen(const char *noun)
         inside = 1;
         return;
     }
-    for (int l = 0; l < sizeof(objs); l++)
+    for (int l = 0; l < NUM_OBJECTS; l++)
     {
         if (inside && strcasecmp(noun, objs[l].item) == 0 && objs[l].location == current_loc)
         {
