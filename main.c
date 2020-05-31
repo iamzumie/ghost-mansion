@@ -12,7 +12,7 @@
 #define UNUSED(var) (void)(var)	/* Pretends to use an unused parameter. */
 
 // FUNCTIONS
-static int readLine();
+static void readLine();
 static void execute();
 static void startUp();
 static void exitGame();
@@ -29,12 +29,12 @@ static char buffer[100];
 
 
 // STRUCTS
-typedef struct VERBS {
+typedef struct VERB {
     const char * word;
     void (*function) (char * noun); // helper function
-} VERBS;
+} VERB;
 
-VERBS verbs[] = {
+VERB verbs[] = {
     { "quit", exitGame},
     { "go",   executeGo},
     { "open", executeOpen},
@@ -42,7 +42,7 @@ VERBS verbs[] = {
     { "take", executeTake}
 };
 
-#define NUM_VERBS ((int)(sizeof(verbs) / sizeof(VERBS)))
+#define NUM_VERBS ((int)(sizeof(verbs) / sizeof(VERB)))
 
 typedef struct LOCATION {
     const char * word;
@@ -109,26 +109,31 @@ int main()
 
 // FUNCTIONS
 // COMMAND & READLINE
-static int readLine ()
+static void readLine()
 {
-    fputs(">  ", stdout);
-    return fgets(buffer, sizeof(buffer), stdin) != NULL;;
+	fputs(">  ", stdout);
+    
+	if (fgets(buffer, sizeof(buffer), stdin) == NULL)
+	{
+		/* End of input. So the game must be over. */
+		whilePlaying = false;
+	}
 }
 
 // EXECUTE
 static void execute(char *buffer)
 {
-    char *verb = strtok(buffer, " \n");
-    char *noun = strtok(NULL, " \n");
+	char *verb = strtok(buffer, " \n");
+	char *noun = strtok(NULL, " \n");
 
-    for (int i = 0; i < NUM_VERBS; i++)
-    {
-        if (strcasecmp(verb, verbs[i].word) == 0)
-        {
-            verbs[i].function(noun);
-            return;
-        }
-    }
+	for (VERB * v = verbs; v < verbs + NUM_VERBS; ++v)
+	{
+		if (strcasecmp(verb, v->word) != 0)
+			continue;
+
+		v->function(noun);
+		return;
+	}
 }
 
 static void exitGame(const char *noun)
