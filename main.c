@@ -6,18 +6,21 @@
 #include <stdbool.h>
 
 // FUNCTIONS
-static bool readLine();
-static int execute();
+static int readLine();
+static void execute();
 static void startUp();
+static void exitGame();
 static void executeOpen();
 static void executeRead();
 static void executeGo();
 static void executeTake();
 
 // INIT
-static char buffer[100];
+static bool whilePlaying = true;
 static const char* current_loc = "hall";
 static int inside = 0;
+static char buffer[100];
+
 
 // STRUCTS
 typedef struct VERBS {
@@ -25,6 +28,7 @@ typedef struct VERBS {
     void (*function) (char * noun); // helper function
 } VERBS;
 VERBS verbs[] = {
+    {"quit", exitGame},
     {"go", executeGo},
     {"open", executeOpen},
     {"read", executeRead},
@@ -72,7 +76,11 @@ int main()
 {    
     startUp(); // INTRO
 
-    while (readLine() && execute()); // GAME LOOP
+    while (whilePlaying) 
+    {
+        readLine();
+        execute(&buffer);
+    }
 
     return false;
 }
@@ -80,33 +88,32 @@ int main()
 
 // FUNCTIONS
 // COMMAND & READLINE
-static bool readLine ()
+static int readLine ()
 {
     fputs(">  ", stdout);
-    return fgets(buffer, sizeof(buffer), stdin) != NULL;
+    return fgets(buffer, sizeof(buffer), stdin) != NULL;;
 }
 
 // EXECUTE
-static int execute()
+static void execute(char *buffer)
 {
     char *verb = strtok(buffer, " \n");
     char *noun = strtok(NULL, " \n");
 
-    if (strcasecmp(verb, "quit") == 0)
-    {
-        return false;
-    }
     for (int i = 0; i < sizeof(VERBS); i++)
     {
         if (strcasecmp(verb, verbs[i].word) == 0)
         {
             verbs[i].function(noun);
-            return true;
+            return;
         }
     }
+}
 
-    puts("I don't understand what you mean, try again.\n");
-    return true;
+static void exitGame(const char *noun)
+{
+    whilePlaying = false;
+    return;
 }
 
 static void executeGo(const char *noun)
