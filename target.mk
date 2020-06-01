@@ -3,11 +3,11 @@
 
 Config ?= Debug
 
-MAKETARGET = $(MAKE) \
+MAKETARGET = "$(MAKE)" \
 	--no-print-directory \
-	-C $@ \
-	-f $(CURDIR)/Makefile \
-	SRCDIR=$(CURDIR) \
+	-C "$@" \
+	-f "$(CURDIR)/Makefile" \
+	SRCDIR="$(shell realpath --relative-to '$@' '$(CURDIR)')" \
 	$(MAKECMDGOALS)
 
 .PHONY: $(CONFIGURATIONS)
