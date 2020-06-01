@@ -12,26 +12,25 @@
 #define UNUSED(var) (void)(var)	/* Pretends to use an unused parameter. */
 
 // FUNCTIONS
-static int readLine();
-static void execute();
+static char * readLine();
+static void execute(char * buffer);
+static void exitGame(const char *noun);
+static void executeOpen(const char *noun);
+static void executeRead(const char *noun);
+static void executeGo(const char *noun);
+static void executeTake(const char *noun);
 static void startUp();
-static void exitGame();
-static void executeOpen();
-static void executeRead();
-static void executeGo();
-static void executeTake();
+static bool words_match();
 
 // INIT
 static bool whilePlaying = true;
 static const char* current_loc = "hall";
 static int inside = 0;
-static char buffer[100];
-
 
 // STRUCTS
 typedef struct VERBS {
     const char * word;
-    void (*function) (char * noun); // helper function
+    void (*function) (const char * noun); // helper function
 } VERBS;
 
 VERBS verbs[] = {
@@ -99,8 +98,8 @@ int main()
 
     while (whilePlaying) 
     {
-        readLine();
-        execute(&buffer);
+        char * buffer = readLine();
+        execute(buffer);
     }
 
     return false;
@@ -109,21 +108,46 @@ int main()
 
 // FUNCTIONS
 // COMMAND & READLINE
-static int readLine ()
+static char * readLine ()
 {
-    fputs(">  ", stdout);
-    return fgets(buffer, sizeof(buffer), stdin) != NULL;;
+    static char buffer[1024];
+	static char * save_ptr = NULL;
+
+    if (!save_ptr)
+    {
+        fputs(">  ", stdout);
+    
+        save_ptr = buffer;
+
+        if (fgets(buffer, sizeof(buffer), stdin) == NULL)
+        {
+            *buffer = 0;
+            whilePlaying = false;
+            return buffer;
+        }
+    }
+    
+    char * result = save_ptr;
+
+    save_ptr = strchr(save_ptr, ';');
+    if (save_ptr)
+    {
+        *save_ptr++ = 0;
+    }
+
+    return result;
 }
 
 // EXECUTE
-static void execute(char *buffer)
+static void execute(buffer)
+    char * buffer;
 {
     char *verb = strtok(buffer, " \n");
     char *noun = strtok(NULL, " \n");
 
     for (int i = 0; i < NUM_VERBS; i++)
     {
-        if (strcasecmp(verb, verbs[i].word) == 0)
+        if (words_match(verb, verbs[i].word))
         {
             verbs[i].function(noun);
             return;
@@ -131,23 +155,25 @@ static void execute(char *buffer)
     }
 }
 
-static void exitGame(const char *noun)
+static void exitGame(noun)
+    const char *noun;
 {
 	UNUSED(noun);
 
 	whilePlaying = false;
 }
 
-static void executeGo(const char *noun)
+static void executeGo(noun)
+    const char *noun;
 {
     for (int i = 0; i < NUM_LOCATIONS; i++)
     {
-        if (inside && strcasecmp(noun, current_loc) == 0)
+        if (inside && words_match(noun, current_loc))
         {
             printf("You are already standing in the %s\n\n", current_loc);
             return;
         }
-        else if (inside && strcasecmp(noun, locations[i].word) == 0) {
+        else if (inside && words_match(noun, locations[i].word)) {
             puts(locations[i].enter_msg);
             current_loc = locations[i].word;
             return;
@@ -157,9 +183,10 @@ static void executeGo(const char *noun)
     return;
 }
 
-static void executeRead(const char *noun)
+static void executeRead(noun)
+    const char *noun;
 {
-    if (!inside && (strcasecmp(noun, "sign") == 0))
+    if (!inside && words_match(noun, "sign"))
     {
         puts("\"Begone, leave the dead in peace!\"\n");
     }
@@ -169,17 +196,18 @@ static void executeRead(const char *noun)
     }
 }
 
-static void executeTake(const char *noun)
+static void executeTake(noun)
+    const char *noun;
 {
     for (int k = 0; k < NUM_OBJECTS; k++)
     {
-        if (objs[k].location == current_loc && strcasecmp(noun, objs[k].item) == 0 && objs[k].flag == CAN_TAKE)
+        if (objs[k].location == current_loc && words_match(noun, objs[k].item) && objs[k].flag == CAN_TAKE)
         {
             puts(objs[k].msg);
             objs[k].flag = CANT_TAKE;
             return;
         }
-        else if (objs[k].location == current_loc && strcasecmp(noun, objs[k].item) == 0 && objs[k].flag == CANT_TAKE)
+        else if (objs[k].location == current_loc && words_match(noun, objs[k].item) && objs[k].flag == CANT_TAKE)
         {
             puts(objs[k].already);
             return;
@@ -189,9 +217,10 @@ static void executeTake(const char *noun)
     return;
 }
 
-static void executeOpen(const char *noun)
+static void executeOpen(noun)
+    const char *noun;
 {
-    if(!inside && strcasecmp(noun, "door") == 0) 
+    if(!inside && words_match(noun, "door")) 
     {
         puts("You enter the mansion's hall, seems like nobody's been here in years..\nYou now have access to the kitchen, toilet, living room & upstairs.\n");
         inside = 1;
@@ -199,7 +228,7 @@ static void executeOpen(const char *noun)
     }
     for (int l = 0; l < NUM_OBJECTS; l++)
     {
-        if (inside && strcasecmp(noun, objs[l].item) == 0 && objs[l].location == current_loc)
+        if (inside && words_match(noun, objs[l].item) && objs[l].location == current_loc)
         {
             puts(objs[l].msg);
             return;
@@ -221,4 +250,11 @@ static void startUp()
             "You can direct me with the use of some basic words.\n\n\n"
             "You stand in front of the mansion, there is a sign on the door.\n"
     );
+}
+
+static bool words_match (word1, word2)
+    const char *word1;
+    const char *word2;
+{
+    return strcasecmp(word1, word2) == 0;
 }
