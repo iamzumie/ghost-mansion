@@ -22,4 +22,4 @@ Makefile : ;
 
 .PHONY: clean
 clean:
-	rm -rf $(Config)
+	rm -rf $(CONFIGURATIONS:%="%")

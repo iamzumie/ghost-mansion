@@ -61,9 +61,9 @@ else
 	$(error UNAME is $(UNAME), not recognized!)
 endif
 
-ifeq ('$(Config)','Debug')
+ifeq '$(Config)' 'Debug'
 	CFLAGS += -O0 -g
-else ifeq '$(Config)','Release'
+else ifeq '$(Config)' 'Release'
 	CFLAGS += -O3 -DNDEBUG
 else
 	$(error Config is '$(Config)', which is not recognized!)
@@ -78,6 +78,9 @@ EXE = gmanse$(exe)
 
 # Make runs the first target encountered by default:
 all: $(EXE)
+
+# "make Debug" is "make all" run in the Debug config. Likewise Release.
+$(CONFIGURATIONS): all
 
 $(EXE): $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDLIBS)
