@@ -355,6 +355,7 @@ static void executeGo(noun, osf, object)
 	void *		   object;
 {
 	UNUSED(noun);
+	UNUSED(osf);
 
 	LOCATION * target = (LOCATION *)object;
 
@@ -371,6 +372,7 @@ executeRead(noun, osf, object)
 	void		  *object;
 {
 	UNUSED(noun);
+	UNUSED(osf);
 
 	OBJECTS * item = object;
 
@@ -409,6 +411,7 @@ executeOpen(noun, osf, object)
 	void		  *object;
 {
 	UNUSED(noun);
+	UNUSED(osf);
 
 	OBJECTS * item = object;
 
