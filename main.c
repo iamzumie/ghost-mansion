@@ -154,28 +154,17 @@ VERB verbs[] = {
 
 #define NUM_VERBS ((int)(sizeof(verbs) / sizeof(VERB)))
 
-typedef enum {
-	LOC_INSIDE,
-	LOC_DOWNSTAIRS,
-	LOC_UPSTAIRS,
-} LOC_FLAGS;
-
 typedef struct LOCATION {
     const char * loc_name;
     bool	 loc_visited;
-    unsigned	 loc_flags	:8;
     const char * loc_enter_msg;
 } LOCATION;
 
 LOCATION locations[] = {
-	{ "Porch", 
-		.loc_visited=false,
-		.loc_flags=0,
-		"You stand in front of the mansion, there is a sign on the"
-		" door." 
-	},
-	{ "hall", 
-		.loc_visited=false,
+	{ "Porch", .loc_visited=false,
+		"You stand in front of the mansion, there is a sign on "
+		"the door." },
+	{ "hall", .loc_visited=false,
 		"You have access to the kitchen, toilet, living room"
 		  " & upstairs." },
 	{ "kitchen", .loc_visited=false,
