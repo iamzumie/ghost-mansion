@@ -47,13 +47,13 @@ SRCDIR ?= $(BASEDIR)/src
 # C compiler settings
 ifeq ('$(UNAME)','Linux')
 	CC := gcc 
-	CFLAGS :=  -std=c11 -Wall -Werror -Wextra -D$(CONFIG)
+	CFLAGS :=  -std=c11 -Wall -Werror -Wextra -D$(CONFIG) -DLOG_USE_COLOR=1
 
 	LD := gcc
 	LDFLAGS := -g
 else ifeq '$(UNAME)','Windows'
 	CC := cl.exe
-	CFLAGS := /Za /Wall /WX /D$(CONFIG)
+	CFLAGS := /Za /Wall /WX /D$(CONFIG) /DLOG_USE_COLOR=1
 
 	LD := cl.exe
 	LDFLAGS :=	# ???
@@ -71,7 +71,7 @@ endif
 
 MAKE_TAGS = etags$(exe)
 
-SRCS_C = main.c
+SRCS_C = main.c log.c
 SRCS = $(SRCS_C)
 OBJS = $(SRCS_C:.c=.o)
 EXE = gmanse$(exe)
