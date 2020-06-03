@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define __STDC_WANT_LIB_EXT1__	1
 #include <string.h>
 
 #ifdef __unix__
@@ -13,28 +14,25 @@
 
 #include <time.h>
 
+#include "log.h"	/* Taken from github:rxi/log.c */
+
+/* Restricted to unix so only aghast sees this output. If you want to see 
+ * it, remove that part of the condition.
+ */
+#if defined(__unix__) && defined(DEBUG)
+#define LOG_LEVEL LOG_TRACE
+#else
+#define LOG_LEVEL LOG_WARN
+#endif
 
 #define UNUSED(var) (void)(var)	/* Pretends to use an unused parameter. */
 
-#if defined(__unix__) && defined(DEBUG)
-#define DEBUG_MESSAGES 1 
-#else
-#define DEBUG_MESSAGES 0 
-#endif
-
-#define debug(...)	 					\
-        do { if (DEBUG_MESSAGES) {				\
-		fprintf(stderr, "%s:%d:%s(): ",			\
-			__FILE__, __LINE__, __func__);		\
-		fprintf(stderr, __VA_ARGS__);			\
-		fputs("\n", stderr);				\
-	} } while (0)
-
-#define STARTING_LOCATION "front"
+#define STARTING_LOCATION "Porch"
 
 /* Forward declarations of types */
 typedef struct LOCATION LOCATION;
 typedef struct OBJECTS OBJECTS;
+
 typedef enum {
 	OSF_LOCATION = 1 << 0,
 	OSF_ROOM = 1 << 1,
@@ -42,16 +40,17 @@ typedef enum {
 	OSF_NUM_FLAGS,
 } OBJECT_SOURCE_FLAG;
 
-
 // FUNCTIONS
 static LOCATION * loc_find(const char * name);
 static char * readLine();
 static void execute(char * buffer);
-static void exitGame(const char * noun, OBJECT_SOURCE_FLAG, void *);
-static void executeOpen(const char * noun, OBJECT_SOURCE_FLAG, void *);
-static void executeRead(const char * noun, OBJECT_SOURCE_FLAG, void *);
-static void executeGo(const char * noun, OBJECT_SOURCE_FLAG, void *);
-static void executeTake(const char * noun, OBJECT_SOURCE_FLAG, void *);
+static void exitGame(const char *, OBJECT_SOURCE_FLAG, void *);
+static void executeGo(const char *, OBJECT_SOURCE_FLAG, void *);
+static void executeInventory(const char *, OBJECT_SOURCE_FLAG, void *);
+static void executeLook(const char *, OBJECT_SOURCE_FLAG, void *);
+static void executeOpen(const char *, OBJECT_SOURCE_FLAG, void *);
+static void executeRead(const char *, OBJECT_SOURCE_FLAG, void *);
+static void executeTake(const char *, OBJECT_SOURCE_FLAG, void *);
 static void itm_guns_and_ammo(void);
 static void itm_open_door(void);
 static void loc_enter(LOCATION * target);
@@ -59,6 +58,7 @@ static OBJECTS * obj_find_in_room(const char * noun);
 static OBJECTS * obj_find_in_player(const char * noun);
 static void pl_add_item(OBJECTS * item);
 static bool pl_has_item(const char * name);
+static char * pl_list_items(const char * delim);
 static void pl_message(const char * fmt, ...);
 static void pl_snark(const char * fmt, ...);
 static void startUp();
@@ -115,6 +115,20 @@ VERB verbs[] = {
 		executeGo,
 		"I don't understand where you want to go!",
     	},
+	{ "inventory",
+		.vb_trans = VT_INTRANS,
+		.vb_object_source = 0,
+		.vb_object_flags = 0,
+		executeInventory,
+		NULL,
+	},
+	{ "look",
+		.vb_trans = VT_INTRANS,
+		.vb_object_source = 0,
+		.vb_object_flags = 0,
+		executeLook,
+		NULL,
+	},
 	{ "open", 
 		.vb_trans = VT_MONOTRANS, 
 		.vb_object_source = OSF_ROOM | OSF_PLAYER, 
@@ -140,17 +154,28 @@ VERB verbs[] = {
 
 #define NUM_VERBS ((int)(sizeof(verbs) / sizeof(VERB)))
 
+typedef enum {
+	LOC_INSIDE,
+	LOC_DOWNSTAIRS,
+	LOC_UPSTAIRS,
+} LOC_FLAGS;
+
 typedef struct LOCATION {
     const char * loc_name;
     bool	 loc_visited;
+    unsigned	 loc_flags	:8;
     const char * loc_enter_msg;
 } LOCATION;
 
 LOCATION locations[] = {
-	{ "front", .loc_visited=false,
-		"You stand in front of the mansion, there is a sign on "
-		"the door." },
-	{ "hall", .loc_visited=false,
+	{ "Porch", 
+		.loc_visited=false,
+		.loc_flags=0,
+		"You stand in front of the mansion, there is a sign on the"
+		" door." 
+	},
+	{ "hall", 
+		.loc_visited=false,
 		"You have access to the kitchen, toilet, living room"
 		  " & upstairs." },
 	{ "kitchen", .loc_visited=false,
@@ -182,8 +207,10 @@ typedef struct OBJECTS {
     void       (*obj_extra_fn)(void);
 } OBJECTS;
 
+#define OBJ_MAX_NAME 32		// Max length of name string
+
 OBJECTS objs[] = {
-	{IV_CAN_OPEN, "front", "door", 
+	{IV_CAN_OPEN, "Porch", "door", 
 		"You enter the mansion's hall, seems like nobody's been"
 		" here in years..",
 		.already=NULL,
@@ -215,7 +242,7 @@ OBJECTS objs[] = {
 		.already="You already took the gun.",
 		.obj_extra_fn=itm_guns_and_ammo,
 	},
-	{IV_CAN_READ, "front", "sign", 
+	{IV_CAN_READ, "Porch", "sign", 
 		"\"Begone, leave the dead in peace!\"", 
 		.already=NULL,
 		.obj_extra_fn=NULL,
@@ -224,12 +251,12 @@ OBJECTS objs[] = {
 
 #define NUM_OBJECTS ((int)(sizeof(objs) / sizeof(OBJECTS)))
 
-#define MAX_ITEMS 20
+#define PL_MAX_ITEMS 20
 
 typedef struct PLAYER {
 	LOCATION * pl_location;
 	FILE *     pl_ostream;
-	OBJECTS *  pl_inventory[MAX_ITEMS]; 
+	OBJECTS *  pl_inventory[PL_MAX_ITEMS]; 
 } PLAYER;
 
 static PLAYER Player;
@@ -237,6 +264,7 @@ static PLAYER Player;
 // MAIN GAME
 int main()
 {    
+	log_set_level(LOG_LEVEL);
     startUp();
 
     while (whilePlaying) 
@@ -259,7 +287,8 @@ execute(buffer)
 {
 	char * verb = strtok(buffer, " \n");
 
-	debug("verb = '%s'", verb);
+	log_debug("verb = '%s'", verb);
+
 	if (!verb)
 		return;
 
@@ -272,7 +301,7 @@ execute(buffer)
 
 		if (v->vb_trans == VT_INTRANS) 
 		{
-			debug("matched '%s' (intrans)", v->word);
+			log_debug("matched '%s' (intrans)", v->word);
 			v->vb_handler(NULL, 0, NULL);
 			return;
 		}
@@ -280,14 +309,14 @@ execute(buffer)
 		char *noun = strtok(NULL, " \n");
 		unsigned voflags = v->vb_object_flags;
 
-		debug("matched '%s', noun = '%s'", v->word, noun);
-		debug("obj source = %d", v->vb_object_source);
+		log_debug("matched '%s', noun = '%s'", v->word, noun);
+		log_debug("obj source = %d", v->vb_object_source);
 
 		if (v->vb_object_source & OSF_LOCATION)
 		{
-			debug("loc_find");
+			log_debug("loc_find");
 			void * target = loc_find(noun);
-			debug("target = %s", ((LOCATION*)target)->loc_name);
+			log_debug("target = %s", ((LOCATION*)target)->loc_name);
 
 			if (target != NULL)
 			{
@@ -298,13 +327,13 @@ execute(buffer)
 
 		if (v->vb_object_source & OSF_ROOM)
 		{
-			debug("obj_find_in_room");
+			log_debug("obj_find_in_room");
 			OBJECTS * target = obj_find_in_room(noun);
 
 			if (target != NULL
 				&& (target->flag & voflags) == voflags)
 			{
-				debug("target = %s", target->item_name);
+				log_debug("target = %s", target->item_name);
 				v->vb_handler(noun, OSF_ROOM, target);
 				if (target->obj_extra_fn)
 					target->obj_extra_fn();
@@ -314,13 +343,13 @@ execute(buffer)
 
 		if (v->vb_object_source & OSF_PLAYER)
 		{
-			debug("obj_find_in_player");
+			log_debug("obj_find_in_player");
 			OBJECTS * target = obj_find_in_player(noun);
 
 			if (target
 				&& (target->flag & voflags) == voflags)
 			{
-				debug("target = %s", target->item_name);
+				log_debug("target = %s", target->item_name);
 				v->vb_handler(noun, OSF_PLAYER, target);
 				if (target->obj_extra_fn)
 					target->obj_extra_fn();
@@ -329,7 +358,7 @@ execute(buffer)
 		}
 
 		/* No object was found for the transitive verb. */
-		debug("bad object");
+		log_debug("bad object");
 		pl_snark(v->vb_bad_object_msg);
 		return;
 	}
@@ -404,6 +433,46 @@ executeTake(noun, osf, object)
 		pl_message(item->already);
 }
 
+/* Print a list of items in the player's inventory. */
+
+static void
+executeInventory(noun, osf, object)
+	const char        *noun;
+	OBJECT_SOURCE_FLAG osf;
+	void		  *object;
+{
+	UNUSED(noun);
+	UNUSED(osf);
+	UNUSED(object);
+
+	log_trace("enter");
+
+	const char * inv_str = pl_list_items(", ");
+	log_debug("inventory: %s\n", inv_str);
+	pl_message("You are holding: %s.", inv_str);
+	log_trace("return");
+}
+
+/* Look around (re-print room description). */
+
+static void
+executeLook(noun, osf, object)
+	const char        *noun;
+	OBJECT_SOURCE_FLAG osf;
+	void		  *object;
+{
+	UNUSED(noun);
+	UNUSED(osf);
+	UNUSED(object);
+
+	log_trace("enter");
+
+	pl_message("%s.", Player.pl_location->loc_name);
+	pl_message(Player.pl_location->loc_enter_msg);
+
+	log_trace("leave");
+}
+
 static void 
 executeOpen(noun, osf, object)
 	const char	  *noun;
@@ -456,7 +525,7 @@ loc_enter(target)
 
 	assert(target != NULL);
 
-	debug("destination = %s", target->loc_name);
+	log_debug("destination = %s", target->loc_name);
 
 	if (target == Player.pl_location)
 	{
@@ -479,21 +548,21 @@ loc_find(target)
 {
 	assert(target != NULL);
 
-	debug("target=%s", target);
+	log_debug("target=%s", target);
 
 	for (LOCATION * loc = locations; loc < locations + NUM_LOCATIONS; 
 		++loc) 
 	{
-		debug("loc = %s", loc->loc_name);
+		log_debug("loc = %s", loc->loc_name);
 
 		if (words_match(target, loc->loc_name)) 
 		{
-			debug("match!");
+			log_debug("match!");
 			return loc;
 		}
 	}
 
-	debug("not found");
+	log_debug("not found");
 	return NULL;
 }
 
@@ -501,19 +570,19 @@ static OBJECTS *
 obj_find_in_player(name)
 	const char * name;
 {
-	debug("name = %s", name);
+	log_debug("name = %s", name);
 
-	for (int i = 0; i < MAX_ITEMS; ++i)
+	for (int i = 0; i < PL_MAX_ITEMS; ++i)
 	{
 		OBJECTS * o = Player.pl_inventory[i];
 		if (o && words_match(o->item_name, name))
 		{
-			debug("found it: %s", o->item_name);
+			log_debug("found it: %s", o->item_name);
 			return o;
 		}
 	}
 
-	debug("not found");
+	log_debug("not found");
 	return NULL;
 }
 
@@ -523,7 +592,7 @@ obj_find_in_room(name)
 {
 	const char * room_name = Player.pl_location->loc_name;
 
-	debug("name = %s, room = %s", name, room_name);
+	log_debug("name = %s, room = %s", name, room_name);
 
 	for (OBJECTS * o = objs; o < objs + NUM_OBJECTS; ++o)
 	{
@@ -534,11 +603,11 @@ obj_find_in_room(name)
 			continue;
 
 		/* Found it! */
-		debug("found it: %s", o->item_name);
+		log_debug("found it: %s", o->item_name);
 		return o;
 	}
 
-	debug("found nothing");
+	log_debug("found nothing");
 	return NULL;
 }
 
@@ -547,7 +616,7 @@ obj_find_in_room(name)
 static void
 pl_add_item(OBJECTS * item)
 {
-	for (int i = 0; i < MAX_ITEMS; ++i)
+	for (int i = 0; i < PL_MAX_ITEMS; ++i)
 	{
 		if (Player.pl_inventory[i] == NULL)
 		{
@@ -556,7 +625,7 @@ pl_add_item(OBJECTS * item)
 		}
 	}
 
-	debug("FAIL: inventory must be full");
+	log_debug("FAIL: inventory must be full");
 	pl_snark("Your inventory is full!");
 }
 
@@ -567,6 +636,42 @@ pl_has_item(name)
 	const char * name;
 {
 	return obj_find_in_player(name) != NULL;
+}
+
+/* Compute a string of item names in inventory, delimited by given text. */
+
+static char *
+pl_list_items(delim)
+	const char * delim;
+{
+#define PL_LIST_ITEMS_BUFFER_SZ (1 + PL_MAX_ITEMS * (OBJ_MAX_NAME + 10))
+	static char buffer[PL_LIST_ITEMS_BUFFER_SZ];
+
+	log_trace("enter");
+
+	bool first = true;
+	size_t offset = 0;
+
+	for (int i=0; i < PL_MAX_ITEMS; ++i)
+	{
+		OBJECTS * o = Player.pl_inventory[i];
+
+		if (o)
+		{
+			offset += snprintf(buffer + offset, 
+				sizeof(buffer) - offset, 
+				"%s%s", 
+				first ? "" : delim, 
+				o->item_name);
+			first = false;
+
+			if (offset >= sizeof(buffer))
+				break;
+		}
+	}
+
+	log_trace("return: %s", buffer);
+	return buffer;
 }
 
 /* Print a plain message to the player. */
@@ -632,7 +737,7 @@ readLine()
 
 static void startUp()
 {
-	debug("Startup - initialize Player");
+	log_debug("Startup - initialize Player");
 
 	Player.pl_ostream = stdout;
 
