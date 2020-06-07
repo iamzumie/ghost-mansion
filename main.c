@@ -70,8 +70,7 @@ enum flag {
     CAN_OPEN = 0x01,
     CAN_TAKE = 0x02,
     CAN_READ = 0x04,
-    CANT_TAKE = 0x08,
-    CANT_OPEN = 0x16
+    CANT_TAKE = 0x08
 };
 
 typedef struct OBJECTS {
