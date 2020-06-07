@@ -24,7 +24,7 @@ static bool words_match();
 
 // INIT
 static bool whilePlaying = true;
-static const char* current_loc = "hall";
+static const char* current_loc = "porch";
 static int inside = 0;
 
 // STRUCTS
@@ -50,13 +50,13 @@ typedef struct LOCATION {
 
 LOCATION locations[] = {
     { "hall",     "You have access to the kitchen, toilet, living room"
-	   	  " & upstairs.\n" },
+	   	" & upstairs.\n" },
     { "kitchen",  "There are several drawers ajar, there's also a weird"
 	          " smell coming\nfrom the fridge.\n" },
     { "living",	  "The furniture is covered with white cloth, but the"
 	    	  " colour has become\nyellowed out of age. Above the"
 	          " fireplace you see a double-barreled shotgun.\n" },
-    { "toilet",	  "You sure have a small bladder, couldn't you go "
+    { "toilet",	  "You sure have a small bladder, couldn't you go"
 	          " before we started playing?\n" },
     { "upstairs", "There are 2 doors, which one do you want to take?"
 	          " Left or right?\n" },
@@ -70,7 +70,8 @@ enum flag {
     CAN_OPEN = 0x01,
     CAN_TAKE = 0x02,
     CAN_READ = 0x04,
-    CANT_TAKE = 0x08
+    CANT_TAKE = 0x08,
+    CANT_OPEN = 0x16
 };
 
 typedef struct OBJECTS {
@@ -85,8 +86,9 @@ OBJECTS objs[] = {
     {CAN_OPEN, "kitchen", "drawer", "In one of the drawers you see some ammo.\n", NULL},
     {CAN_OPEN, "kitchen", "fridge", "Oh wish you didnt opened that. Whatever's in it, it's definitely out-of-date.\n", NULL },
     {CAN_OPEN, "upstairs", "open", "OPEN CLOSET.\n", NULL },
-    {CAN_TAKE, "kitchen", "ammo", "These might come in handy later!\n", "You already took ammo.\n"},
-    {CAN_TAKE, "living", "gun", "You got yourself a gun, you filled it up with the salt bullets you found in the kitchen.\nWhen you put the bullets in the gun, you hear a door being slammed shut upstairs.\n", "You already took the gun.\n"}
+    {CAN_TAKE, "kitchen", "ammo", "These might come in handy later!\n", "You already took some ammo.\n"},
+    {CAN_TAKE, "living", "gun", "You got yourself a gun, you filled it up with the salt bullets you found in the kitchen.\nWhen you put the bullets in the gun, you hear a door being slammed shut upstairs.\n", "You already took the gun.\n"},
+    {CAN_READ, "porch", "sign", "\"Begone, leave the dead in peace!\"\n", NULL}
 };
 
 #define NUM_OBJECTS ((int)(sizeof(objs) / sizeof(OBJECTS)))
@@ -153,6 +155,7 @@ static void execute(buffer)
             return;
         }
     }
+    puts("I don't understand what you mean.\n");
 }
 
 static void exitGame(noun)
@@ -186,14 +189,15 @@ static void executeGo(noun)
 static void executeRead(noun)
     const char *noun;
 {
-    if (!inside && words_match(noun, "sign"))
+    for (int i = 0; i < NUM_OBJECTS; i++)
     {
-        puts("\"Begone, leave the dead in peace!\"\n");
+        if(CAN_READ && objs[i].location == current_loc && words_match(noun, objs[i].item))
+        {
+            puts(objs[i].msg);
+            return;
+        }
     }
-    else
-    {
-        puts("I don't know what you want to read.\n");
-    }
+    puts("I don't know what you want to read.\n");
 }
 
 static void executeTake(noun)
@@ -223,12 +227,13 @@ static void executeOpen(noun)
     if(!inside && words_match(noun, "door")) 
     {
         puts("You enter the mansion's hall, seems like nobody's been here in years..\nYou now have access to the kitchen, toilet, living room & upstairs.\n");
+        current_loc = "hall";
         inside = 1;
         return;
     }
     for (int l = 0; l < NUM_OBJECTS; l++)
     {
-        if (inside && words_match(noun, objs[l].item) && objs[l].location == current_loc)
+        if (inside && words_match(noun, objs[l].item) &&  objs[l].location == current_loc)
         {
             puts(objs[l].msg);
             return;
