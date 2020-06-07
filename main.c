@@ -7,6 +7,11 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <unistd.h>
+#endif  
 
 
 #define UNUSED(var) (void)(var)	/* Pretends to use an unused parameter. */
@@ -19,13 +24,17 @@ static void executeOpen(const char *noun);
 static void executeRead(const char *noun);
 static void executeGo(const char *noun);
 static void executeTake(const char *noun);
+static void executeShoot(const char *noun);
+static void endGame(const char *noun);
+static void delay();
 static void startUp();
 static bool words_match();
 
 // INIT
 static bool whilePlaying = true;
-static const char* current_loc = "porch";
-static int inside = 0;
+static const char *current_loc = "porch";
+static int level = 0;
+static int inventory = 0;
 
 // STRUCTS
 typedef struct VERBS {
@@ -38,39 +47,42 @@ VERBS verbs[] = {
     { "go",   executeGo},
     { "open", executeOpen},
     { "read", executeRead},
-    { "take", executeTake}
+    { "take", executeTake},
+    { "shoot", executeShoot}
 };
 
 #define NUM_VERBS ((int)(sizeof(verbs) / sizeof(VERBS)))
 
 typedef struct LOCATION {
     const char * word;
+    const char * new_loc;
     const char * enter_msg;
 } LOCATION;
 
-LOCATION locations[] = {
-    { "hall",     "You have access to the kitchen, toilet, living room"
-	   	" & upstairs.\n" },
-    { "kitchen",  "There are several drawers ajar, there's also a weird"
-	          " smell coming\nfrom the fridge.\n" },
-    { "living",	  "The furniture is covered with white cloth, but the"
+LOCATION locs[] = {
+    { "hall", "hall",    "You have access to the kitchen, toilet, living room.\n", },
+    { "kitchen", "kitchen",  "There are several drawers ajar, there's also a weird"
+	          " smell coming\nfrom the fridge.\n", },
+    { "living", "living", 	  "The furniture is covered with white cloth, but the"
 	    	  " colour has become\nyellowed out of age. Above the"
-	          " fireplace you see a double-barreled shotgun.\n" },
-    { "toilet",	  "You sure have a small bladder, couldn't you go"
-	          " before we started playing?\n" },
-    { "upstairs", "There are 2 doors, which one do you want to take?"
-	          " Left or right?\n" },
+	          " fireplace you see a double-barreled shotgun.\n", },
+    { "toilet", "toilet",	  "You sure have a small bladder, couldn't you go"
+	          " before we started playing?\n", },
+    { "upstairs", "first", "There are 2 doors, which one do you want to open?"
+	          " Left or right door?\n", },
     { "first",    "You entered a bedroom, there's a bed and a closet"
-	          " in there.\n" },
+	          " in there.\n", },
 };
 
-#define NUM_LOCATIONS ((int)(sizeof(locations) / sizeof(LOCATION)))
+#define NUM_LOCATIONS ((int)(sizeof(locs) / sizeof(LOCATION)))
 
 enum flag {
     CAN_OPEN = 0x01,
     CAN_TAKE = 0x02,
     CAN_READ = 0x04,
-    CANT_TAKE = 0x08
+    CANT_TAKE = 0x08,
+    ENDGAME = 0x16,
+    CAN_SHOOT = 0x32
 };
 
 typedef struct OBJECTS {
@@ -84,10 +96,13 @@ typedef struct OBJECTS {
 OBJECTS objs[] = {
     {CAN_OPEN, "kitchen", "drawer", "In one of the drawers you see some ammo.\n", NULL},
     {CAN_OPEN, "kitchen", "fridge", "Oh wish you didnt opened that. Whatever's in it, it's definitely out-of-date.\n", NULL },
-    {CAN_OPEN, "upstairs", "open", "OPEN CLOSET.\n", NULL },
     {CAN_TAKE, "kitchen", "ammo", "These might come in handy later!\n", "You already took some ammo.\n"},
     {CAN_TAKE, "living", "gun", "You got yourself a gun, you filled it up with the salt bullets you found in the kitchen.\nWhen you put the bullets in the gun, you hear a door being slammed shut upstairs.\n", "You already took the gun.\n"},
-    {CAN_READ, "porch", "sign", "\"Begone, leave the dead in peace!\"\n", NULL}
+    {CAN_READ, "porch", "sign", "\"Begone, leave the dead in peace!\"\n", NULL},
+    {CAN_OPEN, "porch", "door", "You enter the mansion's hall, seems like nobody's been here in years..\nYou now have access to the kitchen, toilet, living room & upstairs.\n"},
+    {ENDGAME, "first", "right", "It's locked.\n", NULL},
+    {ENDGAME, "first", "left", "You entered the room, in front of you see the ghost.\n", "You forgot to bring a gun with bullets.\n"},
+    {CAN_SHOOT, "first", "ghost", "You kill the ghost that was haunting the place for years! Thanks for playing!\n", NULL}
 };
 
 #define NUM_OBJECTS ((int)(sizeof(objs) / sizeof(OBJECTS)))
@@ -162,6 +177,8 @@ static void exitGame(noun)
 {
 	UNUSED(noun);
 
+    puts("Right, like you got something better to do!\n");
+    delay();
 	whilePlaying = false;
 }
 
@@ -170,14 +187,15 @@ static void executeGo(noun)
 {
     for (int i = 0; i < NUM_LOCATIONS; i++)
     {
-        if (inside && words_match(noun, current_loc))
+        if (words_match(noun, current_loc))
         {
             printf("You are already standing in the %s\n\n", current_loc);
             return;
         }
-        else if (inside && words_match(noun, locations[i].word)) {
-            puts(locations[i].enter_msg);
-            current_loc = locations[i].word;
+        else if (words_match(noun, locs[i].word))
+        {
+            puts(locs[i].enter_msg);
+            current_loc = locs[i].new_loc;
             return;
         }
     }
@@ -204,16 +222,20 @@ static void executeTake(noun)
 {
     for (int k = 0; k < NUM_OBJECTS; k++)
     {
-        if (objs[k].location == current_loc && words_match(noun, objs[k].item) && objs[k].flag == CAN_TAKE)
+        if (objs[k].location == current_loc && words_match(noun, objs[k].item))
         {
-            puts(objs[k].msg);
-            objs[k].flag = CANT_TAKE;
-            return;
-        }
-        else if (objs[k].location == current_loc && words_match(noun, objs[k].item) && objs[k].flag == CANT_TAKE)
-        {
-            puts(objs[k].already);
-            return;
+            if (objs[k].flag == CAN_TAKE)
+            {
+                puts(objs[k].msg);
+                inventory++;
+                objs[k].flag = CANT_TAKE;
+                return;
+            }
+            else if ((objs[k].flag == CANT_TAKE))
+            {
+                puts(objs[k].already);
+                return;
+            }
         }
     }
     puts("I don't understand what you want to take.\n");
@@ -223,23 +245,62 @@ static void executeTake(noun)
 static void executeOpen(noun)
     const char *noun;
 {
-    if(!inside && words_match(noun, "door")) 
+    if(!level && words_match(noun, "door")) 
     {
         puts("You enter the mansion's hall, seems like nobody's been here in years..\nYou now have access to the kitchen, toilet, living room & upstairs.\n");
         current_loc = "hall";
-        inside = 1;
+        level++;
         return;
     }
     for (int l = 0; l < NUM_OBJECTS; l++)
     {
-        if (inside && words_match(noun, objs[l].item) &&  objs[l].location == current_loc)
+        if (level == 1 && words_match(noun, objs[l].item) &&  objs[l].location == current_loc)
         {
+            if (objs[l].flag == ENDGAME)
+            {
+                endGame(noun);
+                return;
+            }
             puts(objs[l].msg);
             return;
         }
     }
-    puts("I don't understand what you want to open.\n");
+    puts("I don't know what to open.\n");
     return;
+}
+
+static void executeShoot(noun)
+    const char *noun;
+{
+    for (int i = 0; i < NUM_OBJECTS; i++)
+    {
+        if (objs[i].flag == CAN_SHOOT && words_match(noun, objs[i].item))
+        {
+            puts(objs[i].msg);
+            return;
+        }
+    }
+    puts("I don't understand what you want to shoot.\n");
+    return;
+}
+
+static void endGame (noun)
+    const char *noun;
+{
+    if (inventory < 2)
+    {
+        puts("You can't go in without a gun!\n");
+        return;
+    }
+    for (int i = 0; i < NUM_OBJECTS; i++)
+    {
+        if (words_match(noun, objs[i].item))
+        {
+            delay();
+            whilePlaying = false;
+            return;
+        }
+    }
 }
 
 static void startUp()
@@ -254,6 +315,16 @@ static void startUp()
             "You can direct me with the use of some basic words.\n\n\n"
             "You stand in front of the mansion, there is a sign on the door.\n"
     );
+}
+
+static void delay()
+{
+    //sleep:
+    #ifdef _WIN32
+    Sleep(1250);
+    #else
+    usleep(10000);
+    #endif
 }
 
 static bool words_match (word1, word2)
